@@ -172,7 +172,11 @@ class Works(object):
 
         request_params['sample'] = sample_size
 
-        return iter(self.__class__(request_url, request_params))
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        for item in result['message']['items']:
+            yield item
 
     def doi(self, doi):
         parts = self.ENDPOINT.append(doi)
