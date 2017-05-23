@@ -3,12 +3,6 @@ Crossref API Client
 
 Library with functions to iterate through the Crossref API.
 
-Build Status
-------------
-
-.. image:: https://travis-ci.org/scieloorg/articlemetaapi.svg?branch=master
-    :target: https://travis-ci.org/scieloorg/articlemetaapi
-
 Como Instalar
 -------------
 
