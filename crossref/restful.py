@@ -42,15 +42,15 @@ FIELDS_QUERY = [
 ]
 
 
-class APIExceptions(Exception):
+class CrossrefAPIError(Exception):
     pass
 
 
-class MaxOffsetException(APIExceptions, StopIteration):
+class MaxOffsetError(CrossrefAPIError):
     pass
 
 
-class BadRequest(APIExceptions, ValueError):
+class UrlSyntaxError(CrossrefAPIError, ValueError):
     pass
 
 
@@ -76,9 +76,7 @@ def build_url_endpoint(parts):
     return 'http://%s' % '/'.join([str(i) for i in parts if i is not None])
 
 
-class Works(object):
-
-    ENDPOINT = [API, 'works']
+class Endpoint:
 
     def __init__(self, request_url=None, request_params=None):
         self.request_url = build_url_endpoint(self.ENDPOINT)
@@ -96,7 +94,7 @@ class Works(object):
         request_params = dict(self.request_params)
 
         if order not in ORDER_VALUES:
-            raise BadRequest(
+            raise UrlSyntaxError(
                 'Sort order specified as %s but must be one of: %s' % (
                     str(order),
                     ', '.join(SORT_VALUES)
@@ -112,7 +110,7 @@ class Works(object):
         request_params = dict(self.request_params)
 
         if sort not in SORT_VALUES:
-            raise BadRequest(
+            raise UrlSyntaxError(
                 'Sort field specified as %s but must be one of: ' % (
                     str(sort),
                     ', '.join(SORT_VALUES)
@@ -142,7 +140,7 @@ class Works(object):
 
         for field, value in kwargs.items():
             if field not in FIELDS_QUERY:
-                raise BadRequest(
+                raise UrlSyntaxError(
                     'Field query %s specified but there is no such field query for this route. Valid field queries for this route are: %s' % (
                         str(field), ', '.join(FIELDS_QUERY)
                     )
@@ -162,11 +160,11 @@ class Works(object):
         request_params = {}
         try:
             if sample_size > 100:
-                raise BadRequest(
+                raise UrlSyntaxError(
                     'Integer specified as %s but must be a positive integer less than or equal to 100.' % str(sample_size)
                 )
         except TypeError:
-            raise BadRequest(
+            raise UrlSyntaxError(
                 'Integer specified as %s but must be a positive integer less than or equal to 100.' % str(sample_size)
             )
 
@@ -197,7 +195,7 @@ class Works(object):
                 'get', self.request_url, data=self.request_params).json()
 
             if len(result['message']['items']) == 0:
-                raise StopIteration()
+                return
 
             for item in result['message']['items']:
                 yield item
@@ -205,12 +203,20 @@ class Works(object):
             self.request_params['offset'] += LIMIT + 1
 
             if self.request_params['offset'] >= MAXOFFSET:
-                raise MaxOffsetException(
+                raise MaxOffsetError(
                     'Offset exceded the max offset of %d',
                     MAXOFFSET
                 )
 
-    _gen = __iter__
+
+class Works(Resources):
+
+    ENDPOINT = [API, 'works']
+
+
+class Funders(Resources):
+
+    ENDPOINT = [API, 'funders']
 
 
 class RestfulClient(Works):
