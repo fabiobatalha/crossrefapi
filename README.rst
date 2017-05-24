@@ -3,6 +3,9 @@ Crossref API Client
 
 Library with functions to iterate through the Crossref API.
 
+.. image:: https://travis-ci.org/fabiobatalha/crossrefapi.svg?branch=master
+    :target: https://travis-ci.org/fabiobatalha/crossrefapi
+
 Como Instalar
 -------------
 

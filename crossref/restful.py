@@ -150,86 +150,86 @@ class Works(Endpoint):
         'translator'
     ]
 
-    FILTER_VALUES = [
-        ('alternative-id', None),
-        ('archive', None),
-        ('article-number', None),
-        'assertion',
-        'assertion-group',
-        'award.funder',
-        'award.number',
-        'category-name',
-        'clinical-trial-number',
-        'container-title',
-        'content-domain',
-        'directory',
-        'doi',
-        ('from-accepted-date', validator.is_date),
-        'from-created-date',
-        'from-deposit-date',
-        'from-event-end-date',
-        'from-event-start-date',
-        'from-index-date',
-        'from-issued-date',
-        'from-online-pub-date',
-        'from-posted-date',
-        'from-print-pub-date',
-        'from-pub-date',
-        'from-update-date',
-        'full-text.application',
-        'full-text.type',
-        'full-text.version',
-        'funder',
-        'funder-doi-asserted-by',
-        'group-title',
-        ('has-abstract', validator.is_bool),
-        'has-affiliation',
-        'has-archive',
-        'has-assertion',
-        'has-authenticated-orcid',
-        'has-award',
-        'has-clinical-trial-number',
-        'has-content-domain',
-        'has-domain-restriction',
-        'has-event',
-        'has-full-text',
-        'has-funder',
-        'has-funder-doi',
-        'has-license',
-        'has-orcid',
-        'has-references',
-        'has-relation',
-        'has-update',
-        'has-update-policy',
-        'is-update',
-        'isbn',
-        'issn',
-        'license.delay',
-        'license.url',
-        'license.version',
-        'member',
-        'orcid',
-        'prefix',
-        'relation.object',
-        'relation.object-type',
-        'relation.type',
-        'type',
-        'type-name',
-        'until-accepted-date',
-        'until-created-date',
-        'until-deposit-date',
-        'until-event-end-date',
-        'until-event-start-date',
-        'until-index-date',
-        'until-issued-date',
-        'until-online-pub-date',
-        'until-posted-date',
-        'until-print-pub-date',
-        'until-pub-date',
-        'until-update-date',
-        'update-type',
-        'updates'
-     ]
+    FILTER_VALIDATOR = {
+        'alternative_id': None,
+        'archive': None,
+        'article_number': None,
+        'assertion': None,
+        'assertion-group': None,
+        'award.funder': None,
+        'award.number': None,
+        'category-name': None,
+        'clinical-trial-number': None,
+        'container-title': None,
+        'content-domain': None,
+        'directory': None,
+        'doi': None,
+        'from-accepted_date': validators.is_date,
+        'from-created-date': validators.is_date,
+        'from-deposit-date': validators.is_date,
+        'from-event-end-date': validators.is_date,
+        'from-event-start-date': validators.is_date,
+        'from-index-date': validators.is_date,
+        'from-issued-date': validators.is_date,
+        'from-online-pub-date': validators.is_date,
+        'from-posted-date': validators.is_date,
+        'from-print-pub-date': validators.is_date,
+        'from-pub-date': validators.is_date,
+        'from-update-date': validators.is_date,
+        'full-text.application': None,
+        'full-text.type': None,
+        'full-text.version': None,
+        'funder': None,
+        'funder-doi-asserted-by': None,
+        'group-title': None,
+        'has_abstract': validators.is_bool,
+        'has-affiliation': validators.is_bool,
+        'has-archive': validators.is_bool,
+        'has-assertion': validators.is_bool,
+        'has-authenticated-orcid': validators.is_bool,
+        'has-award': validators.is_bool,
+        'has-clinical-trial-number': validators.is_bool,
+        'has-content-domain': validators.is_bool,
+        'has-domain-restriction': validators.is_bool,
+        'has-event': validators.is_bool,
+        'has-full-text': validators.is_bool,
+        'has-funder': validators.is_bool,
+        'has-funder-doi': validators.is_bool,
+        'has-license': validators.is_bool,
+        'has-orcid': validators.is_bool,
+        'has-references': validators.is_bool,
+        'has-relation': validators.is_bool,
+        'has-update': validators.is_bool,
+        'has-update-policy': validators.is_bool,
+        'is-update': validators.is_bool,
+        'isbn': None,
+        'issn': None,
+        'license.delay': validators.is_integer,
+        'license.url': None,
+        'license.version': None,
+        'member': None,
+        'orcid': None,
+        'prefix': None,
+        'relation.object': None,
+        'relation.object-type': None,
+        'relation.type': None,
+        'type': None,
+        'type-name': None,
+        'until-accepted-date': validators.is_bool,
+        'until-created-date': validators.is_bool,
+        'until-deposit-date': validators.is_bool,
+        'until-event-end-date': validators.is_bool,
+        'until-event-start-date': validators.is_bool,
+        'until-index-date': validators.is_bool,
+        'until-issued-date': validators.is_bool,
+        'until-online-pub-date': validators.is_bool,
+        'until-posted-date': validators.is_bool,
+        'until-print-pub-date': validators.is_bool,
+        'until-pub-date': validators.is_bool,
+        'until-update-date': validators.is_bool,
+        'update-type': None,
+        'updates': None
+     }
 
     def order(self, order='asc'):
         request_url = build_url_endpoint(self.ENDPOINT)
@@ -263,14 +263,28 @@ class Works(Endpoint):
 
         return self.__class__(request_url, request_params)
 
-    def filter(self, filter=None):
+    def filter(self, **kwargs):
         parts = [self.ENDPOINT]
         request_url = build_url_endpoint(self.ENDPOINT)
         request_params = dict(self.request_params)
-        if filter:
-            request_params['filter'] = filter
 
-            "Filter sdsd specified but there is no such filter for this route. Valid filters for this route are: has-assertion, from-print-pub-date, until-deposit-date, from-accepted-date, has-authenticated-orcid, from-created-date, relation.object, issn, until-online-pub-date, group-title, full-text.application, until-created-date, license.version, from-deposit-date, has-abstract, has-event, funder, assertion-group, from-online-pub-date, from-issued-date, directory, content-domain, license.url, from-index-date, full-text.version, full-text.type, until-posted-date, has-orcid, has-archive, type, is-update, until-event-start-date, update-type, from-pub-date, has-license, funder-doi-asserted-by, isbn, has-full-text, doi, orcid, has-content-domain, prefix, until-event-end-date, has-funder, award.funder, clinical-trial-number, member, has-domain-restriction, until-accepted-date, container-title, license.delay, from-posted-date, has-affiliation, from-update-date, has-award, until-print-pub-date, from-event-start-date, has-funder-doi, until-index-date, has-update, until-update-date, until-issued-date, until-pub-date, award.number, has-references, type-name, has-relation, alternative-id, archive, relation.type, updates, relation.object-type, category-name, has-clinical-trial-number, assertion, article-number, has-update-policy, from-event-end-date"
+        for fltr, value in kwargs.items():
+
+            if fltr not in self.FILTER_VALIDATOR.keys():
+                raise UrlSyntaxError(
+                    'Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s' % (
+                        str(fltr),
+                        ', '.join(self.FILTER_VALIDATOR.keys())
+                    )
+                )
+
+            if self.FILTER_VALIDATOR[fltr] is not None:
+                self.FILTER_VALIDATOR[fltr](str(value).lower())
+
+            if 'filter' not in request_params:
+                request_params['filter'] = fltr.replace('_', '-') + ':' + str(value).lower()
+            else:
+                request_params['filter'] += ','+fltr.replace('_', '-') + ':' + str(value).lower()
 
         return self.__class__(request_url, request_params)
 
