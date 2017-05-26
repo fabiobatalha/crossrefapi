@@ -22,13 +22,13 @@ class UrlSyntaxError(CrossrefAPIError, ValueError):
 
 def do_http_request(method, endpoint, data=None, files=None, timeout=10, only_headers=False):
 
+    if only_headers is True:
+        return requests.head(endpoint)
+
     if method == 'post':
         action = requests.post
     else:
         action = requests.get
-
-    if only_headers is True:
-        return requests.head(endpoint)
 
     if method == 'post':
         result = action(endpoint, data=data, files=files, timeout=timeout)
@@ -47,7 +47,7 @@ def build_url_endpoint(endpoint, context=None):
 
 class Endpoint:
 
-    def __init__(self, request_url=None, request_params=None, context=None, cursor_as_iter_method=True):
+    def __init__(self, request_url=None, request_params=None, context=None, cursor_as_iter_method=False):
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
         self.context = context or ''
@@ -368,7 +368,7 @@ class Works(Endpoint):
         cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         if args:
-            request_params['query'] = ' '.join(list(args))
+            request_params['query'] = ' '.join([str(i) for i in args])
 
         for field, value in kwargs.items():
             if field not in self.FIELDS_QUERY:
@@ -434,7 +434,7 @@ class Funders(Endpoint):
         request_params = dict(self.request_params)
 
         if args:
-            request_params['query'] = ' '.join(list(args))
+            request_params['query'] = ' '.join([str(i) for i in args])
 
         return self.__class__(request_url, request_params)
 
@@ -478,7 +478,7 @@ class Members(Endpoint):
         request_params = dict(self.request_params)
 
         if args:
-            request_params['query'] = ' '.join(list(args))
+            request_params['query'] = ' '.join([str(i) for i in args])
 
         return self.__class__(request_url, request_params)
 
@@ -550,6 +550,20 @@ class Prefixes(Endpoint):
     ENDPOINT = 'prefixes'
 
     def prefix(self, prefix_id):
+        """
+        This method retrieve a json with the given Prefix metadata
+
+        args: DOI Prefix
+
+        return: JSON
+
+        Example:
+            >>> from crossref.restful import Prefixes
+            >>> prefixes = Prefixes()
+            >>> prefixes.prefix('10.1590')
+            {'name': 'FapUNIFESP (SciELO)', 'member': 'http://id.crossref.org/member/530',
+            'prefix': 'http://id.crossref.org/prefix/10.1590'}
+        """
         request_url = build_url_endpoint(
             '/'.join([self.ENDPOINT, str(prefix_id)])
         )
@@ -561,7 +575,13 @@ class Prefixes(Endpoint):
         return result['message']
 
     def works(self, prefix_id):
+        """
+        This method retrieve a iterable of Works of the given prefix.
 
+        args: ISSN
+
+        return: Works
+        """
         context = '%s/%s' % (self.ENDPOINT, str(prefix_id))
         return Works(context=context)
 
@@ -571,17 +591,53 @@ class Journals(Endpoint):
     ENDPOINT = 'journals'
 
     def query(self, *args):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        args: strings
+
+        return: iterable object
+
+        Example:
+            >>> from crossref.restful import Journals
+            >>> journals = Journals().query('Public Health', 'Health Science')
+            >>> journals.url
+            'https://api.crossref.org/journals?query=Public+Health+Health+Science'
+            >>> next(iter(journals))
+            {'last-status-check-time': None, 'counts': None, 'coverage': None,
+            'publisher': 'ScopeMed International Medical Journal Managment and Indexing System',
+            'flags': None, 'breakdowns': None, 'ISSN': ['2320-4664', '2277-338X'],
+            'title': 'International Journal of Medical Science and Public Health'}
+        """
         request_url = build_url_endpoint(self.ENDPOINT)
         request_params = dict(self.request_params)
 
         if args:
-            request_params['query'] = ' '.join(list(args))
+            request_params['query'] = ' '.join([str(i) for i in args])
 
         return self.__class__(request_url, request_params)
 
-    def journal(self, journal_id):
+    def journal(self, issn):
+        """
+        This method retrieve a json with the given ISSN metadata
+
+        args: ISSN
+
+        return: JSON
+
+        Example:
+            >>> from crossref.restful import Journals
+            >>> journals = Journals()
+            >>> journals.journal('2277-338X')
+            {'last-status-check-time': None, 'counts': None, 'coverage': None,
+            'publisher': 'ScopeMed International Medical Journal Managment and Indexing System',
+            'flags': None, 'breakdowns': None, 'ISSN': ['2320-4664', '2277-338X'],
+            'title': 'International Journal of Medical Science and Public Health'}
+        """
         request_url = build_url_endpoint(
-            '/'.join([self.ENDPOINT, str(journal_id)])
+            '/'.join([self.ENDPOINT, str(issn)])
         )
         request_params = {}
 
@@ -590,9 +646,30 @@ class Journals(Endpoint):
 
         return result['message']
 
-    def journal_exists(self, journal_id):
+    def journal_exists(self, issn):
+        """
+        This method retrieve a boolean according to the existence of a journal
+        in the Crossref database. It returns False if the API results a 404
+        status code.
+
+        args: ISSN
+
+        return: Boolean
+
+        Example 1:
+            >>> from crossref.restful import Journals
+            >>> journals = Journals()
+            >>> journals.journal_exists('2277-338X')
+            True
+
+        Example 2:
+            >>> from crossref.restful import Journals
+            >>> journals = Journals()
+            >>> journals.journal_exists('9999-AAAA')
+            False
+        """
         request_url = build_url_endpoint(
-            '/'.join([self.ENDPOINT, str(journal_id)])
+            '/'.join([self.ENDPOINT, str(issn)])
         )
         request_params = {}
 
@@ -604,9 +681,16 @@ class Journals(Endpoint):
 
         return True
 
-    def works(self, journal_id):
+    def works(self, issn):
+        """
+        This method retrieve a iterable of Works of the given journal.
 
-        context = '%s/%s' % (self.ENDPOINT, str(journal_id))
+        args: ISSN
+
+        return: Works
+        """
+
+        context = '%s/%s' % (self.ENDPOINT, str(issn))
         return Works(context=context)
 
 
