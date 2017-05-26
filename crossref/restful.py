@@ -16,10 +16,6 @@ class MaxOffsetError(CrossrefAPIError):
     pass
 
 
-class CombinedResourceContextsError(CrossrefAPIError, ValueError):
-    pass
-
-
 class UrlSyntaxError(CrossrefAPIError, ValueError):
     pass
 
@@ -51,10 +47,25 @@ def build_url_endpoint(endpoint, context=None):
 
 class Endpoint:
 
-    def __init__(self, request_url=None, request_params=None, context=None):
+    def __init__(self, request_url=None, request_params=None, context=None, cursor_as_iter_method=True):
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
         self.context = context or ''
+        self.cursor_as_iter_method = cursor_as_iter_method
+
+    @property
+    def _rate_limits(self):
+        request_params = dict(self.request_params)
+        request_url = str(self.request_url)
+
+        result = do_http_request('get', request_url, only_headers=True)
+
+        rate_limits = {
+            'X-Rate-Limit-Limit': result.headers.get('X-Rate-Limit-Limit', 'undefined'),
+            'X-Rate-Limit-Interval': result.headers.get('X-Rate-Limit-Interval', 'undefined')
+        }
+
+        return rate_limits
 
     def _escaped_pagging(self):
         escape_pagging = ['offset', 'rows']
@@ -73,18 +84,24 @@ class Endpoint:
         request_params = dict(self.request_params)
         request_url = str(self.request_url)
 
-        request_params['rows'] = 0
-
         result = do_http_request(
             'get', request_url, data=request_params).json()
 
         return result['message-version']
 
-    def count(self):
+    @property
+    def x_rate_limit_limit(self):
 
+        return self._rate_limits.get('X-Rate-Limit-Limit', 'undefined')
+
+    @property
+    def x_rate_limit_interval(self):
+
+        return self._rate_limits.get('X-Rate-Limit-Interval', 'undefined')
+
+    def count(self):
         request_params = dict(self.request_params)
         request_url = str(self.request_url)
-
         request_params['rows'] = 0
 
         result = do_http_request(
@@ -104,12 +121,13 @@ class Endpoint:
     def all(self):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
+        cursor_as_iter_method = bool(self.cursor_as_iter_method)
         request_params = {}
 
-        return iter(self.__class__(request_url, request_params, context))
+        return iter(self.__class__(request_url, request_params, context, cursor_as_iter_method))
 
     def __iter__(self):
-
+        request_url = str(self.request_url)
         if 'sample' in self.request_params:
             request_params = self._escaped_pagging()
             result = do_http_request(
@@ -120,35 +138,51 @@ class Endpoint:
 
             return
 
-        self.request_params['offset'] = 0
-        self.request_params['rows'] = LIMIT
+        if self.cursor_as_iter_method == True:
+            request_params = dict(self.request_params)
+            request_params['cursor'] = '*'
+            request_params['rows'] = LIMIT
+            while True:
+                result = do_http_request(
+                    'get', request_url, data=request_params).json()
 
-        while True:
-            result = do_http_request(
-                'get', self.request_url, data=self.request_params).json()
+                if len(result['message']['items']) == 0:
+                    return
 
-            if len(result['message']['items']) == 0:
-                return
+                for item in result['message']['items']:
+                    yield item
 
-            for item in result['message']['items']:
-                yield item
+                request_params['cursor'] = result['message']['next-cursor']
+        else:
+            request_params = dict(self.request_params)
+            request_params['offset'] = 0
+            request_params['rows'] = LIMIT
+            while True:
+                result = do_http_request(
+                    'get', request_url, data=request_params).json()
 
-            self.request_params['offset'] += LIMIT + 1
+                if len(result['message']['items']) == 0:
+                    return
 
-            if self.request_params['offset'] >= MAXOFFSET:
-                raise MaxOffsetError(
-                    'Offset exceded the max offset of %d',
-                    MAXOFFSET
-                )
+                for item in result['message']['items']:
+                    yield item
+
+                request_params['offset'] += LIMIT + 1
+
+                if request_params['offset'] >= MAXOFFSET:
+                    raise MaxOffsetError(
+                        'Offset exceded the max offset of %d',
+                        MAXOFFSET
+                    )
 
 
 class Works(Endpoint):
 
     ENDPOINT = 'works'
 
-    ORDER_VALUES = ['asc', 'desc', '1', '-1']
+    ORDER_VALUES = ('asc', 'desc', '1', '-1')
 
-    SORT_VALUES = [
+    SORT_VALUES = (
         'created',
         'deposited',
         'indexed',
@@ -162,9 +196,9 @@ class Works(Endpoint):
         'score',
         'submitted',
         'updated'
-    ]
+    )
 
-    FIELDS_QUERY = [
+    FIELDS_QUERY = (
         'affiliation',
         'author',
         'bibliographic',
@@ -182,7 +216,7 @@ class Works(Endpoint):
         'publisher_name',
         'title',
         'translator'
-    ]
+    )
 
     FILTER_VALIDATOR = {
         'alternative_id': None,
@@ -196,7 +230,7 @@ class Works(Endpoint):
         'clinical-trial-number': None,
         'container-title': None,
         'content-domain': None,
-        'directory': None,
+        'directory': validators.directory,
         'doi': None,
         'from-accepted_date': validators.is_date,
         'from-created-date': validators.is_date,
@@ -241,7 +275,7 @@ class Works(Endpoint):
         'license.delay': validators.is_integer,
         'license.url': None,
         'license.version': None,
-        'member': None,
+        'member': validators.is_integer,
         'orcid': None,
         'prefix': None,
         'relation.object': None,
@@ -269,6 +303,7 @@ class Works(Endpoint):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
+        cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         if order not in self.ORDER_VALUES:
             raise UrlSyntaxError(
@@ -280,12 +315,13 @@ class Works(Endpoint):
 
         request_params['order'] = order
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, cursor_as_iter_method)
 
     def sort(self, sort='score'):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
+        cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         if sort not in self.SORT_VALUES:
             raise UrlSyntaxError(
@@ -297,12 +333,13 @@ class Works(Endpoint):
 
         request_params['sort'] = sort
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, cursor_as_iter_method)
 
     def filter(self, **kwargs):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
+        cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         for fltr, value in kwargs.items():
             decoded_fltr = fltr.replace('__', '.').replace('_', '-')
@@ -322,12 +359,13 @@ class Works(Endpoint):
             else:
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, cursor_as_iter_method)
 
     def query(self, *args, **kwargs):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
+        cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         if args:
             request_params['query'] = ' '.join(list(args))
@@ -341,7 +379,7 @@ class Works(Endpoint):
                 )
             request_params['query.%s' % field.replace('_', '-')] = value
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, cursor_as_iter_method)
 
     def sample(self, sample_size=20):
         context = str(self.context)
@@ -572,27 +610,87 @@ class Journals(Endpoint):
         return Works(context=context)
 
 
-class RestfulClient(Works):
+class Depositor(object):
 
-    def rate_limits(self):
+    def __init__(self, prefix, api_user, api_key):
 
-        endpoint = build_url_endpoint(['members', '1'])
+        self.prefix = prefix
+        self.api_user = api_user
+        self.api_key = api_key
 
-        result = do_http_request('get', endpoint, only_headers=True)
+    def register_doi(self, submission_id, request_xml):
+        """
+        This method registry a new DOI number in Crossref or update some DOI
+        metadata.
 
-        rate_limits = {
-            'X-Rate-Limit-Limit': result.headers.get('X-Rate-Limit-Limit', 'undefined'),
-            'X-Rate-Limit-Interval': result.headers.get('X-Rate-Limit-Interval', 'undefined')
+        submission_id: Will be used as the submission file name. The file name
+        could be used in future requests to retrieve the submission status.
+
+        request_xml: The XML with the document metadata. It must be under
+        compliance with the Crossref Submission Schema.
+        """
+
+        endpoint = "https://doi.crossref.org/servlet/deposit"
+
+        files = {
+            'mdFile': ('%s.xml' % submission_id, request_xml)
         }
 
-        return rate_limits
+        params = {
+            'operation': 'doMDUpload',
+            'login_id': self.api_user,
+            'login_passwd': self.api_key
+        }
 
-    @property
-    def x_rate_limit_limit(self):
+        result = do_http_request(
+            'post', endpoint, data=params, files=files, timeout=10)
 
-        return self.rate_limits['X-Rate-Limit-Limit']
+        return result
 
-    @property
-    def x_rate_limit_interval(self):
+    def request_doi_status_by_filename(self, file_name, data_type='result'):
+        """
+        This method retrieve the DOI requests status.
 
-        return self.rate_limits['X-Rate-Limit-Interval']
+        file_name: Used as unique ID to identify a deposit.
+
+        data_type: [contents, result]
+            contents - retrieve the XML submited by the publisher
+            result - retrieve a JSON with the status of the submission
+        """
+
+        endpoint = "https://doi.crossref.org/servlet/submissionDownload"
+
+        params = {
+            'usr': self.api_user,
+            'pwd': self.api_key,
+            'file_name': file_name,
+            'type': data_type
+        }
+
+        result = do_http_request('get', endpoint, data=params, timeout=10)
+
+        return result
+
+    def request_doi_status_by_batch_id(self, doi_batch_id, data_type='result'):
+        """
+        This method retrieve the DOI requests status.
+
+        file_name: Used as unique ID to identify a deposit.
+
+        data_type: [contents, result]
+            contents - retrieve the XML submited by the publisher
+            result - retrieve a XML with the status of the submission
+        """
+
+        endpoint = "https://doi.crossref.org/servlet/submissionDownload"
+
+        params = {
+            'usr': self.api_user,
+            'pwd': self.api_key,
+            'doi_batch_id': doi_batch_id,
+            'type': data_type
+        }
+
+        result = do_http_request('get', endpoint, data=params, timeout=10)
+
+        return result

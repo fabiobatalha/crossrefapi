@@ -5,6 +5,17 @@ from crossref import validators
 
 class ValidatorsTest(unittest.TestCase):
 
+    def test_directory_1(self):
+
+        result = validators.directory('DOAJ')
+
+        self.assertTrue(result)
+
+    def test_directory_2(self):
+
+        with self.assertRaises(ValueError):
+            validators.directory('any invalid archive')
+
     def test_archive_1(self):
 
         result = validators.archive('CLOCKSS')

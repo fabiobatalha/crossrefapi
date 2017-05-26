@@ -2,6 +2,21 @@ from crossref.utils import asbool
 from datetime import datetime
 
 
+def directory(value):
+    expected = (
+        'DOAJ'
+    )
+
+    if str(value) in expected:
+        return True
+
+    raise ValueError('Directory specified as %s but must be one of: %s' % (
+            str(value),
+            ', '.join(expected)
+        )
+    )
+
+
 def archive(value):
     expected = (
         'Portico',
