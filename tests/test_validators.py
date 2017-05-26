@@ -5,17 +5,27 @@ from crossref import validators
 
 class ValidatorsTest(unittest.TestCase):
 
-    def test_is_bool_1(self):
+    def test_archive_1(self):
 
-        result = validators.is_bool(False)
+        result = validators.archive('CLOCKSS')
+
+        self.assertTrue(result)
+
+    def test_archive_2(self):
+
+        with self.assertRaises(ValueError):
+            validators.archive('any invalid archive')
+
+    def test_document_type_1(self):
+
+        result = validators.document_type('book-chapter')
 
         self.assertTrue(result)
 
-    def test_is_bool_2(self):
+    def test_document_type_2(self):
 
-        result = validators.is_bool(True)
-
-        self.assertTrue(result)
+        with self.assertRaises(ValueError):
+            validators.document_type('any invalid type')
 
     def test_is_bool_3(self):
 

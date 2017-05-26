@@ -3,8 +3,8 @@ import json
 
 from crossref import validators
 
-LIMIT = 20
-MAXOFFSET = 40
+LIMIT = 100
+MAXOFFSET = 10000
 API = "api.crossref.org"
 
 
@@ -13,6 +13,10 @@ class CrossrefAPIError(Exception):
 
 
 class MaxOffsetError(CrossrefAPIError):
+    pass
+
+
+class CombinedResourceContextsError(CrossrefAPIError, ValueError):
     pass
 
 
@@ -38,15 +42,19 @@ def do_http_request(method, endpoint, data=None, files=None, timeout=10, only_he
     return result
 
 
-def build_url_endpoint(parts):
-    return 'http://%s' % '/'.join([str(i) for i in parts if i is not None])
+def build_url_endpoint(endpoint, context=None):
+
+    endpoint = '/'.join([i for i in [context, endpoint] if i])
+
+    return 'https://%s/%s' % (API, endpoint)
 
 
 class Endpoint:
 
-    def __init__(self, request_url=None, request_params=None):
-        self.request_url = build_url_endpoint(self.ENDPOINT)
+    def __init__(self, request_url=None, request_params=None, context=None):
+        self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
+        self.context = context or ''
 
     def _escaped_pagging(self):
         escape_pagging = ['offset', 'rows']
@@ -61,18 +69,44 @@ class Endpoint:
         return request_params
 
     @property
+    def version(self):
+        request_params = dict(self.request_params)
+        request_url = str(self.request_url)
+
+        request_params['rows'] = 0
+
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        return result['message-version']
+
+    def count(self):
+
+        request_params = dict(self.request_params)
+        request_url = str(self.request_url)
+
+        request_params['rows'] = 0
+
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        return int(result['message']['total-results'])
+
+    @property
     def url(self):
         request_params = self._escaped_pagging()
+
         req = requests.Request(
             'get', self.request_url, params=request_params).prepare()
 
         return req.url
 
     def all(self):
-        request_url = build_url_endpoint(self.ENDPOINT)
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = {}
 
-        return iter(self.__class__(request_url, request_params))
+        return iter(self.__class__(request_url, request_params, context))
 
     def __iter__(self):
 
@@ -110,7 +144,7 @@ class Endpoint:
 
 class Works(Endpoint):
 
-    ENDPOINT = [API, 'works']
+    ENDPOINT = 'works'
 
     ORDER_VALUES = ['asc', 'desc', '1', '-1']
 
@@ -152,7 +186,7 @@ class Works(Endpoint):
 
     FILTER_VALIDATOR = {
         'alternative_id': None,
-        'archive': None,
+        'archive': validators.archive,
         'article_number': None,
         'assertion': None,
         'assertion-group': None,
@@ -213,7 +247,7 @@ class Works(Endpoint):
         'relation.object': None,
         'relation.object-type': None,
         'relation.type': None,
-        'type': None,
+        'type': validators.document_type,
         'type-name': None,
         'until-accepted-date': validators.is_bool,
         'until-created-date': validators.is_bool,
@@ -232,7 +266,8 @@ class Works(Endpoint):
      }
 
     def order(self, order='asc'):
-        request_url = build_url_endpoint(self.ENDPOINT)
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
 
         if order not in self.ORDER_VALUES:
@@ -245,10 +280,11 @@ class Works(Endpoint):
 
         request_params['order'] = order
 
-        return self.__class__(request_url, request_params)
+        return self.__class__(request_url, request_params, context)
 
     def sort(self, sort='score'):
-        request_url = build_url_endpoint(self.ENDPOINT)
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
 
         if sort not in self.SORT_VALUES:
@@ -261,36 +297,36 @@ class Works(Endpoint):
 
         request_params['sort'] = sort
 
-        return self.__class__(request_url, request_params)
+        return self.__class__(request_url, request_params, context)
 
     def filter(self, **kwargs):
-        parts = [self.ENDPOINT]
-        request_url = build_url_endpoint(self.ENDPOINT)
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
 
         for fltr, value in kwargs.items():
-
-            if fltr not in self.FILTER_VALIDATOR.keys():
+            decoded_fltr = fltr.replace('__', '.').replace('_', '-')
+            if decoded_fltr not in self.FILTER_VALIDATOR.keys():
                 raise UrlSyntaxError(
                     'Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s' % (
-                        str(fltr),
+                        str(decoded_fltr),
                         ', '.join(self.FILTER_VALIDATOR.keys())
                     )
                 )
 
-            if self.FILTER_VALIDATOR[fltr] is not None:
-                self.FILTER_VALIDATOR[fltr](str(value).lower())
+            if self.FILTER_VALIDATOR[decoded_fltr] is not None:
+                self.FILTER_VALIDATOR[decoded_fltr](str(value))
 
             if 'filter' not in request_params:
-                request_params['filter'] = fltr.replace('_', '-') + ':' + str(value).lower()
+                request_params['filter'] = decoded_fltr + ':' + str(value)
             else:
-                request_params['filter'] += ','+fltr.replace('_', '-') + ':' + str(value).lower()
+                request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params)
+        return self.__class__(request_url, request_params, context)
 
     def query(self, *args, **kwargs):
-
-        request_url = build_url_endpoint(self.ENDPOINT)
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
 
         if args:
@@ -305,10 +341,11 @@ class Works(Endpoint):
                 )
             request_params['query.%s' % field.replace('_', '-')] = value
 
-        return self.__class__(request_url, request_params)
+        return self.__class__(request_url, request_params, context)
 
     def sample(self, sample_size=20):
-        request_url = build_url_endpoint(self.ENDPOINT)
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = {}
         try:
             if sample_size > 100:
@@ -322,12 +359,12 @@ class Works(Endpoint):
 
         request_params['sample'] = sample_size
 
-        return self.__class__(request_url, request_params)
+        return self.__class__(request_url, request_params, context)
 
     def doi(self, doi):
-        self.ENDPOINT.append(doi)
-        parts = self.ENDPOINT
-        request_url = build_url_endpoint(parts)
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, doi])
+        )
         request_params = {}
 
         result = do_http_request(
@@ -338,10 +375,9 @@ class Works(Endpoint):
 
 class Funders(Endpoint):
 
-    ENDPOINT = [API, 'funders']
+    ENDPOINT = 'funders'
 
     def query(self, *args):
-
         request_url = build_url_endpoint(self.ENDPOINT)
         request_params = dict(self.request_params)
 
@@ -351,15 +387,133 @@ class Funders(Endpoint):
         return self.__class__(request_url, request_params)
 
     def funder(self, funder_id):
-        self.ENDPOINT.append(funder_id)
-        parts = self.ENDPOINT
-        request_url = build_url_endpoint(parts)
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, funder_id])
+        )
         request_params = {}
 
         result = do_http_request(
             'get', request_url, data=request_params).json()
 
         return result['message']
+
+    def works(self, funder_id):
+
+        context = '%s/%s' % (self.ENDPOINT, funder_id)
+        return Works(context=context)
+
+
+class Members(Endpoint):
+
+    ENDPOINT = 'members'
+
+    def query(self, *args):
+        request_url = build_url_endpoint(self.ENDPOINT)
+        request_params = dict(self.request_params)
+
+        if args:
+            request_params['query'] = ' '.join(list(args))
+
+        return self.__class__(request_url, request_params)
+
+    def member(self, member_id):
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, member_id])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        return result['message']
+
+    def works(self, member_id):
+
+        context = '%s/%s' % (self.ENDPOINT, member_id)
+        return Works(context=context)
+
+
+class Types(Endpoint):
+
+    ENDPOINT = 'types'
+
+    def type(self, type_id):
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, type_id])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        return result['message']
+
+    def all(self):
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
+        request_params = dict(self.request_params)
+
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        for item in result['message']['items']:
+            yield item
+
+    def works(self, type_id):
+
+        context = '%s/%s' % (self.ENDPOINT, type_id)
+        return Works(context=context)
+
+
+class Prefixes(Endpoint):
+
+    ENDPOINT = 'prefixes'
+
+    def prefix(self, prefix_id):
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, prefix_id])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        return result['message']
+
+    def works(self, prefix_id):
+
+        context = '%s/%s' % (self.ENDPOINT, prefix_id)
+        return Works(context=context)
+
+
+class Journals(Endpoint):
+
+    ENDPOINT = 'journals'
+
+    def query(self, *args):
+        request_url = build_url_endpoint(self.ENDPOINT)
+        request_params = dict(self.request_params)
+
+        if args:
+            request_params['query'] = ' '.join(list(args))
+
+        return self.__class__(request_url, request_params)
+
+    def journal(self, journal_id):
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, journal_id])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        return result['message']
+
+    def works(self, journal_id):
+
+        context = '%s/%s' % (self.ENDPOINT, journal_id)
+        return Works(context=context)
 
 
 class RestfulClient(Works):
@@ -386,8 +540,3 @@ class RestfulClient(Works):
     def x_rate_limit_interval(self):
 
         return self.rate_limits['X-Rate-Limit-Interval']
-
-    @property
-    def works(self):
-
-        return Works()
