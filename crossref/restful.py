@@ -372,6 +372,20 @@ class Works(Endpoint):
 
         return result['message']
 
+    def doi_exists(self, doi):
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, doi])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params, only_headers=True)
+
+        if result.status_code == 404:
+            return False
+
+        return True
+
 
 class Funders(Endpoint):
 
@@ -388,7 +402,7 @@ class Funders(Endpoint):
 
     def funder(self, funder_id):
         request_url = build_url_endpoint(
-            '/'.join([self.ENDPOINT, funder_id])
+            '/'.join([self.ENDPOINT, str(funder_id)])
         )
         request_params = {}
 
@@ -397,9 +411,23 @@ class Funders(Endpoint):
 
         return result['message']
 
+    def funder_exists(self, funder_id):
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, str(funder_id)])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params, only_headers=True)
+
+        if result.status_code == 404:
+            return False
+
+        return True
+
     def works(self, funder_id):
 
-        context = '%s/%s' % (self.ENDPOINT, funder_id)
+        context = '%s/%s' % (self.ENDPOINT, str(funder_id))
         return Works(context=context)
 
 
@@ -418,7 +446,7 @@ class Members(Endpoint):
 
     def member(self, member_id):
         request_url = build_url_endpoint(
-            '/'.join([self.ENDPOINT, member_id])
+            '/'.join([self.ENDPOINT, str(member_id)])
         )
         request_params = {}
 
@@ -427,9 +455,23 @@ class Members(Endpoint):
 
         return result['message']
 
+    def member_exists(self, member_id):
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, str(member_id)])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params, only_headers=True)
+
+        if result.status_code == 404:
+            return False
+
+        return True
+
     def works(self, member_id):
 
-        context = '%s/%s' % (self.ENDPOINT, member_id)
+        context = '%s/%s' % (self.ENDPOINT, str(member_id))
         return Works(context=context)
 
 
@@ -439,7 +481,7 @@ class Types(Endpoint):
 
     def type(self, type_id):
         request_url = build_url_endpoint(
-            '/'.join([self.ENDPOINT, type_id])
+            '/'.join([self.ENDPOINT, str(type_id)])
         )
         request_params = {}
 
@@ -461,7 +503,7 @@ class Types(Endpoint):
 
     def works(self, type_id):
 
-        context = '%s/%s' % (self.ENDPOINT, type_id)
+        context = '%s/%s' % (self.ENDPOINT, str(type_id))
         return Works(context=context)
 
 
@@ -471,7 +513,7 @@ class Prefixes(Endpoint):
 
     def prefix(self, prefix_id):
         request_url = build_url_endpoint(
-            '/'.join([self.ENDPOINT, prefix_id])
+            '/'.join([self.ENDPOINT, str(prefix_id)])
         )
         request_params = {}
 
@@ -482,7 +524,7 @@ class Prefixes(Endpoint):
 
     def works(self, prefix_id):
 
-        context = '%s/%s' % (self.ENDPOINT, prefix_id)
+        context = '%s/%s' % (self.ENDPOINT, str(prefix_id))
         return Works(context=context)
 
 
@@ -501,7 +543,7 @@ class Journals(Endpoint):
 
     def journal(self, journal_id):
         request_url = build_url_endpoint(
-            '/'.join([self.ENDPOINT, journal_id])
+            '/'.join([self.ENDPOINT, str(journal_id)])
         )
         request_params = {}
 
@@ -510,9 +552,23 @@ class Journals(Endpoint):
 
         return result['message']
 
+    def journal_exists(self, journal_id):
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, str(journal_id)])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params, only_headers=True)
+
+        if result.status_code == 404:
+            return False
+
+        return True
+
     def works(self, journal_id):
 
-        context = '%s/%s' % (self.ENDPOINT, journal_id)
+        context = '%s/%s' % (self.ENDPOINT, str(journal_id))
         return Works(context=context)
 
 
