@@ -5,6 +5,7 @@ from crossref import validators
 
 LIMIT = 100
 MAXOFFSET = 10000
+FACETS_MAX_LIMIT = 1000
 API = "api.crossref.org"
 
 
@@ -340,6 +341,26 @@ class Works(Endpoint):
         'updates': None
      }
 
+    FACET_VALUES = {
+        'archive': None,
+        'affiliation': None,
+        'assertion': None,
+        'assertion-group': None,
+        'category-name': None,
+        'container-title': 1000,
+        'license': None,
+        'funder-doi': None,
+        'funder-name': None,
+        'issn': 1000,
+        'orcid': 1000,
+        'published': None,
+        'publisher-name': None,
+        'relation-type': None,
+        'source': None,
+        'type-name': None,
+        'update-type': None
+    }
+
     def order(self, order='asc'):
         """
         This method retrieve an iterable object that implements the method
@@ -502,6 +523,26 @@ class Works(Endpoint):
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
         return self.__class__(request_url, request_params, context, cursor_as_iter_method)
+
+    def facet(self, facet_name, facet_count=100):
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
+        request_params = dict(self.request_params)
+        request_params['rows'] = 0
+
+        if facet_name not in self.FACET_VALUES.keys():
+            raise UrlSyntaxError('Facet %s specified but there is no such facet for this route. Valid facets for this route are: *, affiliation, funder-name, funder-doi, publisher-name, orcid, container-title, assertion, archive, update-type, issn, published, source, type-name, license, category-name, relation-type, assertion-group' %
+                    str(facet_name),
+                    ', '.join(self.FACET_VALUES.keys())
+                )
+
+        facet_count = self.FACET_VALUES[facet_name] if self.FACET_VALUES[facet_name] is not None and self.FACET_VALUES[facet_name] <= facet_count else facet_count
+
+        request_params['facet'] = '%s:%s' % (facet_name, facet_count)
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        return result['message']['facets']
 
     def query(self, *args, **kwargs):
         """
