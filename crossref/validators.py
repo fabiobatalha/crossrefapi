@@ -1,3 +1,5 @@
+# coding: utf-8
+
 from crossref.utils import asbool
 from datetime import datetime
 
