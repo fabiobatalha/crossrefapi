@@ -50,11 +50,12 @@ def build_url_endpoint(endpoint, context=None):
 
 class Endpoint:
 
-    def __init__(self, request_url=None, request_params=None, context=None, cursor_as_iter_method=False):
+    CURSOR_AS_ITER_METHOD = False
+
+    def __init__(self, request_url=None, request_params=None, context=None):
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
         self.context = context or ''
-        self.cursor_as_iter_method = cursor_as_iter_method
 
     @property
     def _rate_limits(self):
@@ -165,10 +166,9 @@ class Endpoint:
     def all(self):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
-        cursor_as_iter_method = bool(self.cursor_as_iter_method)
         request_params = {}
 
-        return iter(self.__class__(request_url, request_params, context, cursor_as_iter_method))
+        return iter(self.__class__(request_url, request_params, context))
 
     def __iter__(self):
         request_url = str(self.request_url)
@@ -182,7 +182,7 @@ class Endpoint:
 
             return
 
-        if self.cursor_as_iter_method == True:
+        if self.CURSOR_AS_ITER_METHOD is True:
             request_params = dict(self.request_params)
             request_params['cursor'] = '*'
             request_params['rows'] = LIMIT
@@ -221,6 +221,8 @@ class Endpoint:
 
 
 class Works(Endpoint):
+
+    CURSOR_AS_ITER_METHOD = True
 
     ENDPOINT = 'works'
 
@@ -406,7 +408,6 @@ class Works(Endpoint):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
-        cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         if order not in self.ORDER_VALUES:
             raise UrlSyntaxError(
@@ -418,7 +419,7 @@ class Works(Endpoint):
 
         request_params['order'] = order
 
-        return self.__class__(request_url, request_params, context, cursor_as_iter_method)
+        return self.__class__(request_url, request_params, context)
 
     def sort(self, sort='score'):
         """
@@ -463,7 +464,6 @@ class Works(Endpoint):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
-        cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         if sort not in self.SORT_VALUES:
             raise UrlSyntaxError(
@@ -475,7 +475,7 @@ class Works(Endpoint):
 
         request_params['sort'] = sort
 
-        return self.__class__(request_url, request_params, context, cursor_as_iter_method)
+        return self.__class__(request_url, request_params, context)
 
     def filter(self, **kwargs):
         """
@@ -504,7 +504,6 @@ class Works(Endpoint):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
-        cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         for fltr, value in kwargs.items():
             decoded_fltr = fltr.replace('__', '.').replace('_', '-')
@@ -524,7 +523,7 @@ class Works(Endpoint):
             else:
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params, context, cursor_as_iter_method)
+        return self.__class__(request_url, request_params, context)
 
     def facet(self, facet_name, facet_count=100):
         context = str(self.context)
@@ -582,7 +581,6 @@ class Works(Endpoint):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
-        cursor_as_iter_method = bool(self.cursor_as_iter_method)
 
         if args:
             request_params['query'] = ' '.join([str(i) for i in args])
@@ -596,7 +594,7 @@ class Works(Endpoint):
                 )
             request_params['query.%s' % field.replace('_', '-')] = value
 
-        return self.__class__(request_url, request_params, context, cursor_as_iter_method)
+        return self.__class__(request_url, request_params, context)
 
     def sample(self, sample_size=20):
         """
@@ -747,6 +745,8 @@ class Works(Endpoint):
 
 class Funders(Endpoint):
 
+    CURSOR_AS_ITER_METHOD = False
+
     ENDPOINT = 'funders'
 
     def query(self, *args):
@@ -853,6 +853,8 @@ class Funders(Endpoint):
 
 
 class Members(Endpoint):
+
+    CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = 'members'
 
@@ -1001,6 +1003,8 @@ class Members(Endpoint):
 
 class Types(Endpoint):
 
+    CURSOR_AS_ITER_METHOD = False
+
     ENDPOINT = 'types'
 
     def type(self, type_id, only_message=True):
@@ -1100,6 +1104,8 @@ class Types(Endpoint):
 
 class Prefixes(Endpoint):
 
+    CURSOR_AS_ITER_METHOD = False
+
     ENDPOINT = 'prefixes'
 
     def prefix(self, prefix_id, only_message=True):
@@ -1140,6 +1146,8 @@ class Prefixes(Endpoint):
 
 
 class Journals(Endpoint):
+
+    CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = 'journals'
 
