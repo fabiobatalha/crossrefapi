@@ -81,6 +81,12 @@ class Endpoint:
 
     @property
     def version(self):
+        """
+            This attribute retrieve the API version.
+
+            >>> Works().version
+            '1.0.0'
+        """
         request_params = dict(self.request_params)
         request_url = str(self.request_url)
 
@@ -100,6 +106,23 @@ class Endpoint:
         return self._rate_limits.get('X-Rate-Limit-Interval', 'undefined')
 
     def count(self):
+        """
+        This method retrieve the total of records resulting from a given query.
+
+        This attribute can be used compounded with query, filter,
+        sort, order and facet methods.
+
+        Examples:
+            >>> from crossref.restful import Works
+            >>> Works().query('zika').count()
+            3597
+            >>> Works().query('zika').filter(prefix='10.1590').count()
+            61
+            >>> Works().query('zika').filter(prefix='10.1590').sort('published').order('desc').filter(has_abstract='true').count()
+            14
+            >>> Works().query('zika').filter(prefix='10.1590').sort('published').order('desc').filter(has_abstract='true').query(author='Marli').count()
+            1
+        """
         request_params = dict(self.request_params)
         request_url = str(self.request_url)
         request_params['rows'] = 0
@@ -111,6 +134,24 @@ class Endpoint:
 
     @property
     def url(self):
+        """
+        This attribute retrieve the url that will be used as a HTTP request to
+        the Crossref API.
+
+        This attribute can be used compounded with query, filter,
+        sort, order and facet methods.
+
+        Examples:
+            >>> from crossref.restful import Works
+            >>> Works().query('zika').url
+            'https://api.crossref.org/works?query=zika'
+            >>> Works().query('zika').filter(prefix='10.1590').url
+            'https://api.crossref.org/works?query=zika&filter=prefix%3A10.1590'
+            >>> Works().query('zika').filter(prefix='10.1590').sort('published').order('desc').url
+            'https://api.crossref.org/works?sort=published&order=desc&query=zika&filter=prefix%3A10.1590'
+            >>> Works().query('zika').filter(prefix='10.1590').sort('published').order('desc').filter(has_abstract='true').query(author='Marli').url
+            'https://api.crossref.org/works?sort=published&filter=prefix%3A10.1590%2Chas-abstract%3Atrue&query=zika&order=desc&query.author=Marli'
+        """
         request_params = self._escaped_pagging()
 
         req = requests.Request(
@@ -250,7 +291,7 @@ class Works(Endpoint):
         'funder': None,
         'funder-doi-asserted-by': None,
         'group-title': None,
-        'has_abstract': validators.is_bool,
+        'has-abstract': validators.is_bool,
         'has-affiliation': validators.is_bool,
         'has-archive': validators.is_bool,
         'has-assertion': validators.is_bool,
@@ -300,6 +341,45 @@ class Works(Endpoint):
      }
 
     def order(self, order='asc'):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        This method can be used compounded with query, filter,
+        sort and facet methods.
+
+        kwargs: valid SORT_VALUES arguments.
+
+        return: iterable object of Works metadata
+
+        Example 1:
+            >>> from crossref.restful import Works
+            >>> works.query('zika').sort('deposited').order('asc').url
+            'https://api.crossref.org/works?sort=deposited&query=zika&order=asc'
+            >>> query = works.query('zika').sort('deposited').order('asc')
+            >>> for item in query:
+            ...    print(item['title'], item['deposited']['date-time'])
+            ...
+            ['A Facile Preparation of 1-(6-Hydroxyindol-1-yl)-2,2-dimethylpropan-1-one'] 2007-02-13T20:56:13Z
+            ['Contributions to the Flora of the Lake Champlain Valley, New York and Vermont, III'] 2007-02-13T20:56:13Z
+            ['Pilularia americana A. Braun in Klamath County, Oregon'] 2007-02-13T20:56:13Z
+            ...
+
+        Example 2:
+            >>> from crossref.restful import Works
+            >>> works.query('zika').sort('deposited').order('desc').url
+            'https://api.crossref.org/works?sort=deposited&query=zika&order=desc'
+            >>> query = works.query('zika').sort('deposited').order('desc')
+            >>> for item in query:
+            ...    print(item['title'], item['deposited']['date-time'])
+            ...
+            ["Planning for the unexpected: Ebola virus, Zika virus, what's next?"] 2017-05-29T12:55:53Z
+            ['Sensitivity of RT-PCR method in samples shown to be positive for Zika virus by RT-qPCR in vector competence studies'] 2017-05-29T12:53:54Z
+            ['Re-evaluation of routine dengue virus serology in travelers in the era of Zika virus emergence'] 2017-05-29T10:46:11Z
+            ...
+        """
+
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
@@ -318,6 +398,45 @@ class Works(Endpoint):
         return self.__class__(request_url, request_params, context, cursor_as_iter_method)
 
     def sort(self, sort='score'):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        This method can be used compounded with query, filter,
+        order and facet methods.
+
+        kwargs: valid SORT_VALUES arguments.
+
+        return: iterable object of Works metadata
+
+        Example 1:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> query = works.sort('deposited')
+            >>> for item in query:
+            ...     print(item['title'])
+            ...
+            ['Integralidade e transdisciplinaridade em equipes multiprofissionais na saúde coletiva']
+            ['Aprendizagem em grupo operativo de diabetes: uma abordagem etnográfica']
+            ['A rotatividade de enfermeiros e médicos: um impasse na implementação da Estratégia de Saúde da Família']
+            ...
+
+        Example 2:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> query = works.sort('relevance')
+            >>> for item in query:
+            ...     print(item['title'])
+            ...
+            ['Proceedings of the American Physical Society']
+            ['Annual Meeting of the Research Society on Alcoholism']
+            ['Local steroid injections: Comment on the American college of rheumatology guidelines for the management of osteoarthritis of the hip and on the letter by Swezey']
+            ['Intraventricular neurocytoma']
+            ['Mammography accreditation']
+            ['Temporal lobe necrosis in nasopharyngeal carcinoma: Pictorial essay']
+            ...
+        """
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
@@ -336,6 +455,29 @@ class Works(Endpoint):
         return self.__class__(request_url, request_params, context, cursor_as_iter_method)
 
     def filter(self, **kwargs):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        This method can be used compounded and recursively with query, filter,
+        order, sort and facet methods.
+
+        kwargs: valid FILTER_VALIDATOR arguments.
+
+        return: iterable object of Works metadata
+
+        Example:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> query = works.filter(has_funder='true', has_license='true')
+            >>> for item in query:
+            ...     print(item['title'])
+            ...
+            ['Design of smiling-face-shaped band-notched UWB antenna']
+            ['Phase I clinical and pharmacokinetic study of PM01183 (a tetrahydroisoquinoline, Lurbinectedin) in combination with gemcitabine in patients with advanced solid tumors']
+            ...
+        """
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
@@ -362,6 +504,38 @@ class Works(Endpoint):
         return self.__class__(request_url, request_params, context, cursor_as_iter_method)
 
     def query(self, *args, **kwargs):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        This method can be used compounded and recursively with query, filter,
+        order, sort and facet methods.
+
+        args: strings (String)
+
+        kwargs: valid FIELDS_QUERY arguments.
+
+        return: iterable object of Works metadata
+
+        Example:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> query = works.query('Zika Virus')
+            >>> query.url
+            'https://api.crossref.org/works?query=Zika+Virus'
+            >>> for item in query:
+            ...     print(item['title'])
+            ...
+            ['Zika Virus']
+            ['Zika virus disease']
+            ['Zika Virus: Laboratory Diagnosis']
+            ['Spread of Zika virus disease']
+            ['Carditis in Zika Virus Infection']
+            ['Understanding Zika virus']
+            ['Zika Virus: History and Infectology']
+            ...
+        """
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
@@ -382,6 +556,24 @@ class Works(Endpoint):
         return self.__class__(request_url, request_params, context, cursor_as_iter_method)
 
     def sample(self, sample_size=20):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        kwargs: sample_size (Integer) between 0 and 100.
+
+        return: iterable object of Works metadata
+
+        Example:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> works.sample(2).url
+            'https://api.crossref.org/works?sample=2'
+            >>> [i['title'] for i in works.sample(2)]
+            [['A study on the hemolytic properties ofPrevotella nigrescens'],
+            ['The geometry and the radial breathing mode of carbon nanotubes: beyond the ideal behaviour']]
+        """
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = {}
@@ -399,7 +591,47 @@ class Works(Endpoint):
 
         return self.__class__(request_url, request_params, context)
 
-    def doi(self, doi):
+    def doi(self, doi, only_message=True):
+        """
+        This method retrieve the DOI metadata related to a given DOI
+        number.
+
+        args: Crossref DOI id (String)
+
+        return: JSON
+
+        Example:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> works.doi('10.1590/S0004-28032013005000001')
+            {'is-referenced-by-count': 6, 'reference-count': 216, 'DOI': '10.1590/s0004-28032013005000001',
+            'subtitle': [], 'issued': {'date-parts': [[2013, 4, 19]]}, 'source': 'Crossref',
+            'short-container-title': ['Arq. Gastroenterol.'], 'references-count': 216, 'short-title': [],
+            'deposited': {'timestamp': 1495911725000, 'date-time': '2017-05-27T19:02:05Z',
+            'date-parts': [[2017, 5, 27]]}, 'ISSN': ['0004-2803'], 'type': 'journal-article',
+            'URL': 'http://dx.doi.org/10.1590/s0004-28032013005000001',
+            'indexed': {'timestamp': 1496034748592, 'date-time': '2017-05-29T05:12:28Z',
+            'date-parts': [[2017, 5, 29]]}, 'content-domain': {'crossmark-restriction': False, 'domain': []},
+            'created': {'timestamp': 1374613284000, 'date-time': '2013-07-23T21:01:24Z',
+            'date-parts': [[2013, 7, 23]]}, 'issn-type': [{'value': '0004-2803', 'type': 'electronic'}],
+            'page': '81-96', 'volume': '50', 'original-title': [], 'subject': ['Gastroenterology'],
+            'relation': {}, 'container-title': ['Arquivos de Gastroenterologia'], 'member': '530',
+            'prefix': '10.1590', 'published-print': {'date-parts': [[2013, 4, 19]]},
+            'title': ['3rd BRAZILIAN CONSENSUS ON Helicobacter pylori'],
+            'publisher': 'FapUNIFESP (SciELO)', 'alternative-id': ['S0004-28032013000200081'],
+            'abstract': '<jats:p>Significant abstract data.....  .</jats:p>',
+            'author': [{'affiliation': [{'name': 'Universidade Federal de Minas Gerais,  BRAZIL'}],
+            'family': 'Coelho', 'given': 'Luiz Gonzaga'}, {'affiliation': [
+            {'name': 'Universidade Federal do Rio Grande do Sul,  Brazil'}], 'family': 'Maguinilk',
+            'given': 'Ismael'}, {'affiliation': [
+            {'name': 'Presidente de Honra do Núcleo Brasileiro para Estudo do Helicobacter,  Brazil'}],
+            'family': 'Zaterka', 'given': 'Schlioma'}, {'affiliation': [
+            {'name': 'Universidade Federal do Piauí,  Brasil'}], 'family': 'Parente', 'given': 'José Miguel'},
+            {'affiliation': [{'name': 'Universidade Federal de Minas Gerais,  BRAZIL'}],
+            'family': 'Passos', 'given': 'Maria do Carmo Friche'}, {'affiliation': [
+            {'name': 'Universidade de São Paulo,  Brasil'}], 'family': 'Moraes-Filho',
+            'given': 'Joaquim Prado P.'}], 'score': 1.0, 'issue': '2'}
+        """
         request_url = build_url_endpoint(
             '/'.join([self.ENDPOINT, doi])
         )
@@ -408,9 +640,54 @@ class Works(Endpoint):
         result = do_http_request(
             'get', request_url, data=request_params).json()
 
-        return result['message']
+        return result['message'] if only_message is True else result
+
+    def agency(self, doi, only_message=True):
+        """
+        This method retrieve the DOI Agency metadata related to a given DOI
+        number.
+
+        args: Crossref DOI id (String)
+
+        return: JSON
+
+        Example:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> works.agency('10.1590/S0004-28032013005000001')
+            {'DOI': '10.1590/s0004-28032013005000001', 'agency': {'label': 'CrossRef', 'id': 'crossref'}}
+        """
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, doi, 'agency'])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params).json()
+
+        return result['message'] if only_message is True else result
 
     def doi_exists(self, doi):
+        """
+        This method retrieve a boolean according to the existence of a crossref
+        DOI number. It returns False if the API results a 404 status code.
+
+        args: Crossref DOI id (String)
+
+        return: Boolean
+
+        Example 1:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> works.doi_exists('10.1590/S0004-28032013005000001')
+            True
+
+        Example 2:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> works.doi_exists('10.1590/S0004-28032013005000001_invalid_doi')
+            False
+        """
         request_url = build_url_endpoint(
             '/'.join([self.ENDPOINT, doi])
         )
@@ -430,6 +707,26 @@ class Funders(Endpoint):
     ENDPOINT = 'funders'
 
     def query(self, *args):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        args: Funder ID (Integer)
+
+        return: iterable object of Funders metadata
+
+        Example:
+            >>> from crossref.restful import Funders
+            >>> funders = Funders()
+            >>> funders.query('ABBEY').url
+            'https://api.crossref.org/funders?query=ABBEY'
+            >>> next(iter(funders.query('ABBEY')))
+            {'alt-names': ['Abbey'], 'location': 'United Kingdom', 'replaced-by': [],
+            'replaces': [], 'name': 'ABBEY AWARDS', 'id': '501100000314',
+            'tokens': ['abbey', 'awards', 'abbey'],
+            'uri': 'http://dx.doi.org/10.13039/501100000314'}
+        """
         request_url = build_url_endpoint(self.ENDPOINT)
         request_params = dict(self.request_params)
 
@@ -438,7 +735,24 @@ class Funders(Endpoint):
 
         return self.__class__(request_url, request_params)
 
-    def funder(self, funder_id):
+    def funder(self, funder_id, only_message=True):
+        """funder
+        This method retrive a crossref funder metadata related to the
+        given funder_id.
+
+        args: Funder ID (Integer)
+
+        Example:
+            >>> from crossref.restful import Funders
+            >>> funders = Funders()
+            >>> funders.funder('501100000314')
+            {'hierarchy': {'501100000314': {}}, 'alt-names': ['Abbey'],
+            'work-count': 3, 'replaced-by': [], 'replaces': [],
+            'hierarchy-names': {'501100000314': 'ABBEY AWARDS'},
+            'uri': 'http://dx.doi.org/10.13039/501100000314', 'location': 'United Kingdom',
+            'descendant-work-count': 3, 'descendants': [], 'name': 'ABBEY AWARDS',
+            'id': '501100000314', 'tokens': ['abbey', 'awards', 'abbey']}
+        """
         request_url = build_url_endpoint(
             '/'.join([self.ENDPOINT, str(funder_id)])
         )
@@ -447,9 +761,29 @@ class Funders(Endpoint):
         result = do_http_request(
             'get', request_url, data=request_params).json()
 
-        return result['message']
+        return result['message'] if only_message is True else result
 
     def funder_exists(self, funder_id):
+        """
+        This method retrieve a boolean according to the existence of a crossref
+        funder. It returns False if the API results a 404 status code.
+
+        args: Crossref Funder id (Integer)
+
+        return: Boolean
+
+        Example 1:
+            >>> from crossref.restful import Funders
+            >>> funders = Funders()
+            >>> funders.funder_exists('501100000314')
+            True
+
+        Example 2:
+            >>> from crossref.restful import Funders
+            >>> funders = Funders()
+            >>> funders.funder_exists('999999999999')
+            False
+        """
         request_url = build_url_endpoint(
             '/'.join([self.ENDPOINT, str(funder_id)])
         )
@@ -464,7 +798,13 @@ class Funders(Endpoint):
         return True
 
     def works(self, funder_id):
+        """
+        This method retrieve a iterable of Works of the given funder.
 
+        args: Crossref allowed document Types (String)
+
+        return: Works()
+        """
         context = '%s/%s' % (self.ENDPOINT, str(funder_id))
         return Works(context=context)
 
@@ -474,6 +814,43 @@ class Members(Endpoint):
     ENDPOINT = 'members'
 
     def query(self, *args):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        args: strings (String)
+
+        return: iterable object of Members metadata
+
+        Example:
+            >>> from crossref.restful import Members
+            >>> members = Members().query('Korean Association')
+            members.query('Korean Association').url
+            'https://api.crossref.org/journals?query=Public+Health+Health+Science'
+            >>> next(iter(members.query('Korean Association')))
+            {'prefix': [{'value': '10.20433', 'public-references': False,
+            'name': 'The New Korean Philosophical Association'}], 'counts': {'total-dois': 0, 'backfile-dois': 0,
+            'current-dois': 0}, 'coverage': {'references-backfile': 0, 'references-current': 0,
+            'abstracts-current': 0, 'update-policies-backfile': 0, 'orcids-current': 0, 'orcids-backfile': 0,
+            'licenses-current': 0, 'affiliations-backfile': 0, 'licenses-backfile': 0, 'update-policies-current': 0,
+            'resource-links-current': 0, 'resource-links-backfile': 0, 'award-numbers-backfile': 0,
+            'abstracts-backfile': 0, 'funders-current': 0, 'funders-backfile': 0, 'affiliations-current': 0,
+            'award-numbers-current': 0}, 'flags': {'deposits-orcids-backfile': False,
+            'deposits-references-backfile': False, 'deposits-licenses-current': False, 'deposits': False,
+            'deposits-abstracts-current': False, 'deposits-award-numbers-current': False, 'deposits-articles': False,
+            'deposits-resource-links-backfile': False, 'deposits-funders-current': False,
+            'deposits-award-numbers-backfile': False, 'deposits-references-current': False,
+            'deposits-abstracts-backfile': False, 'deposits-funders-backfile': False,
+            'deposits-update-policies-current': False, 'deposits-orcids-current': False,
+            'deposits-licenses-backfile': False, 'deposits-affiliations-backfile': False,
+            'deposits-update-policies-backfile': False, 'deposits-resource-links-current': False,
+            'deposits-affiliations-current': False}, 'names': ['The New Korean Philosophical Association'],
+            'breakdowns': {'dois-by-issued-year': []}, 'location': 'Dongsin Tower, 4th Floor 5, Mullae-dong 6-ga,
+            Mullae-dong 6-ga Seoul 150-096 South Korea', 'prefixes': ['10.20433'],
+            'last-status-check-time': 1496034177684, 'id': 8334, 'tokens': ['the', 'new', 'korean', 'philosophical',
+            'association'], 'primary-name': 'The New Korean Philosophical Association'}
+        """
         request_url = build_url_endpoint(self.ENDPOINT)
         request_params = dict(self.request_params)
 
@@ -482,7 +859,47 @@ class Members(Endpoint):
 
         return self.__class__(request_url, request_params)
 
-    def member(self, member_id):
+    def member(self, member_id, only_message=True):
+        """
+        This method retrive a crossref member metadata related to the
+        given member_id.
+
+        args: Member ID (Integer)
+
+        Example:
+            >>> from crossref.restful import Members
+            >>> members = Members()
+            >>> members.member(101)
+            {'prefix': [{'value': '10.1024', 'public-references': False,
+            'name': 'Hogrefe Publishing Group'}, {'value': '10.1027', 'public-references': False,
+            'name': 'Hogrefe Publishing Group'}, {'value': '10.1026', 'public-references': False,
+            'name': 'Hogrefe Publishing Group'}], 'counts': {'total-dois': 35039, 'backfile-dois': 31430,
+            'current-dois': 3609}, 'coverage': {'references-backfile': 0.3601972758769989,
+            'references-current': 0.019118869677186012, 'abstracts-current': 0.0,
+            'update-policies-backfile': 0.0, 'orcids-current': 0.0, 'orcids-backfile': 0.0,
+            'licenses-current': 0.0, 'affiliations-backfile': 0.05685650557279587,
+            'licenses-backfile': 0.0, 'update-policies-current': 0.0, 'resource-links-current': 0.0,
+            'resource-links-backfile': 0.0, 'award-numbers-backfile': 0.0, 'abstracts-backfile': 0.0,
+            'funders-current': 0.0, 'funders-backfile': 0.0, 'affiliations-current': 0.15710723400115967,
+            'award-numbers-current': 0.0}, 'flags': {'deposits-orcids-backfile': False,
+            'deposits-references-backfile': True, 'deposits-licenses-current': False, 'deposits': True,
+            'deposits-abstracts-current': False, 'deposits-award-numbers-current': False,
+            'deposits-articles': True, 'deposits-resource-links-backfile': False,
+            'deposits-funders-current': False, 'deposits-award-numbers-backfile': False,
+            'deposits-references-current': True, 'deposits-abstracts-backfile': False,
+            'deposits-funders-backfile': False, 'deposits-update-policies-current': False,
+            'deposits-orcids-current': False, 'deposits-licenses-backfile': False,
+            'deposits-affiliations-backfile': True, 'deposits-update-policies-backfile': False,
+            'deposits-resource-links-current': False, 'deposits-affiliations-current': True},
+            'names': ['Hogrefe Publishing Group'], 'breakdowns': {'dois-by-issued-year': 
+            [[2003, 2329], [2004, 2264], [2002, 2211], [2005, 2204], [2006, 2158], [2007, 2121], [2016, 1954],
+            [2008, 1884], [2015, 1838], [2012, 1827], [2013, 1805], [2014, 1796], [2009, 1760], [2010, 1718],
+            [2011, 1681], [2001, 1479], [2000, 1477], [1999, 1267], [2017, 767], [1997, 164], [1996, 140],
+            [1998, 138], [1995, 103], [1994, 11], [1993, 11], [0, 1]]},
+            'location': 'Langgass-Strasse 76 Berne CH-3000 Switzerland', 'prefixes': ['10.1024', '10.1027',
+            '10.1026'], 'last-status-check-time': 1496034132646, 'id': 101, 'tokens': ['hogrefe', 'publishing',
+            'group'], 'primary-name': 'Hogrefe Publishing Group'}
+        """
         request_url = build_url_endpoint(
             '/'.join([self.ENDPOINT, str(member_id)])
         )
@@ -491,9 +908,29 @@ class Members(Endpoint):
         result = do_http_request(
             'get', request_url, data=request_params).json()
 
-        return result['message']
+        return result['message'] if only_message is True else result
 
     def member_exists(self, member_id):
+        """
+        This method retrieve a boolean according to the existence of a crossref
+        member. It returns False if the API results a 404 status code.
+
+        args: Crossref allowed document Type (String)
+
+        return: Boolean
+
+        Example 1:
+            >>> from crossref.restful import Members
+            >>> members = Members()
+            >>> members.member_exists(101)
+            True
+
+        Example 2:
+            >>> from crossref.restful import Members
+            >>> members = Members()
+            >>> members.member_exists(88888)
+            False
+        """
         request_url = build_url_endpoint(
             '/'.join([self.ENDPOINT, str(member_id)])
         )
@@ -508,7 +945,13 @@ class Members(Endpoint):
         return True
 
     def works(self, member_id):
+        """
+        This method retrieve a iterable of Works of the given member.
 
+        args: Member ID (Integer)
+
+        return: Works()
+        """
         context = '%s/%s' % (self.ENDPOINT, str(member_id))
         return Works(context=context)
 
@@ -517,7 +960,17 @@ class Types(Endpoint):
 
     ENDPOINT = 'types'
 
-    def type(self, type_id):
+    def type(self, type_id, only_message=True):
+        """
+        This method retrive a crossref document type metadata related to the
+        given type_id.
+
+        args: Crossref allowed document Types (String)
+
+        Example:
+            >>> types.type('journal-article')
+            {'label': 'Journal Article', 'id': 'journal-article'}
+        """
         request_url = build_url_endpoint(
             '/'.join([self.ENDPOINT, str(type_id)])
         )
@@ -526,11 +979,28 @@ class Types(Endpoint):
         result = do_http_request(
             'get', request_url, data=request_params).json()
 
-        return result['message']
+        return result['message'] if only_message is True else result
 
     def all(self):
-        context = str(self.context)
-        request_url = build_url_endpoint(self.ENDPOINT, context)
+        """
+        This method retrieve an iterator with all the available types.
+
+        return: iterator of crossref document types
+
+        Example:
+            >>> from crossref.restful import Types
+            >>> types = Types()
+            >>> [i for i in types.all()]
+            [{'label': 'Book Section', 'id': 'book-section'},
+            {'label': 'Monograph', 'id': 'monograph'},
+            {'label': 'Report', 'id': 'report'},
+            {'label': 'Book Track', 'id': 'book-track'},
+            {'label': 'Journal Article', 'id': 'journal-article'},
+            {'label': 'Part', 'id': 'book-part'},
+            ...
+            }]
+        """
+        request_url = build_url_endpoint(self.ENDPOINT, self.context)
         request_params = dict(self.request_params)
 
         result = do_http_request(
@@ -539,8 +1009,48 @@ class Types(Endpoint):
         for item in result['message']['items']:
             yield item
 
-    def works(self, type_id):
+    def type_exists(self, type_id):
+        """
+        This method retrieve a boolean according to the existence of a crossref
+        document type. It returns False if the API results a 404 status code.
 
+        args: Crossref allowed document Type (String)
+
+        return: Boolean
+
+        Example 1:
+            >>> from crossref.restful import Types
+            >>> types = Types()
+            >>> types.type_exists('journal-article')
+            True
+
+        Example 2:
+            >>> from crossref.restful import Types
+            >>> types = Types()
+            >>> types.type_exists('unavailable type')
+            False
+        """
+        request_url = build_url_endpoint(
+            '/'.join([self.ENDPOINT, str(type_id)])
+        )
+        request_params = {}
+
+        result = do_http_request(
+            'get', request_url, data=request_params, only_headers=True)
+
+        if result.status_code == 404:
+            return False
+
+        return True
+
+    def works(self, type_id):
+        """
+        This method retrieve a iterable of Works of the given type.
+
+        args: Crossref allowed document Types (String)
+
+        return: Works()
+        """
         context = '%s/%s' % (self.ENDPOINT, str(type_id))
         return Works(context=context)
 
@@ -549,11 +1059,11 @@ class Prefixes(Endpoint):
 
     ENDPOINT = 'prefixes'
 
-    def prefix(self, prefix_id):
+    def prefix(self, prefix_id, only_message=True):
         """
         This method retrieve a json with the given Prefix metadata
 
-        args: DOI Prefix
+        args: Crossref Prefix (String)
 
         return: JSON
 
@@ -572,15 +1082,15 @@ class Prefixes(Endpoint):
         result = do_http_request(
             'get', request_url, data=request_params).json()
 
-        return result['message']
+        return result['message'] if only_message is True else result
 
     def works(self, prefix_id):
         """
         This method retrieve a iterable of Works of the given prefix.
 
-        args: ISSN
+        args: Crossref Prefix (String)
 
-        return: Works
+        return: Works()
         """
         context = '%s/%s' % (self.ENDPOINT, str(prefix_id))
         return Works(context=context)
@@ -596,9 +1106,9 @@ class Journals(Endpoint):
         __iter__. The arguments given will compose the parameters in the
         request url.
 
-        args: strings
+        args: strings (String)
 
-        return: iterable object
+        return: iterable object of Journals metadata
 
         Example:
             >>> from crossref.restful import Journals
@@ -619,13 +1129,13 @@ class Journals(Endpoint):
 
         return self.__class__(request_url, request_params)
 
-    def journal(self, issn):
+    def journal(self, issn, only_message=True):
         """
         This method retrieve a json with the given ISSN metadata
 
-        args: ISSN
+        args: Journal ISSN (String)
 
-        return: JSON
+        return: Journal JSON data
 
         Example:
             >>> from crossref.restful import Journals
@@ -644,7 +1154,7 @@ class Journals(Endpoint):
         result = do_http_request(
             'get', request_url, data=request_params).json()
 
-        return result['message']
+        return result['message'] if only_message is True else result
 
     def journal_exists(self, issn):
         """
@@ -652,7 +1162,7 @@ class Journals(Endpoint):
         in the Crossref database. It returns False if the API results a 404
         status code.
 
-        args: ISSN
+        args: Journal ISSN (String)
 
         return: Boolean
 
@@ -685,9 +1195,9 @@ class Journals(Endpoint):
         """
         This method retrieve a iterable of Works of the given journal.
 
-        args: ISSN
+        args: Journal ISSN (String)
 
-        return: Works
+        return: Works()
         """
 
         context = '%s/%s' % (self.ENDPOINT, str(issn))
