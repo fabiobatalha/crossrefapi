@@ -39,6 +39,7 @@ Sample
 
 Query
 `````
+.. code-block:: python
 
     In [1]: from crossref.restful import Works
 
