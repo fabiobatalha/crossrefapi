@@ -119,6 +119,58 @@ Doi
    'type': 'journal-article',
    'volume': '32'}
 
+Facet
+`````
+
+.. code-block:: python
+
+  In [1]: from crossref.restful import Works, Prefixes
+
+  In [2]: works = Works()
+
+  In [3]: works.facet('issn', 10)
+  Out[3]:
+  {'issn': {'value-count': 10,
+    'values': {'http://id.crossref.org/issn/0009-2975': 306546,
+     'http://id.crossref.org/issn/0028-0836': 395353,
+     'http://id.crossref.org/issn/0140-6736': 458909,
+     'http://id.crossref.org/issn/0302-9743': 369955,
+     'http://id.crossref.org/issn/0931-7597': 487523,
+     'http://id.crossref.org/issn/0959-8138': 392754,
+     'http://id.crossref.org/issn/1095-9203': 253978,
+     'http://id.crossref.org/issn/1468-5833': 388355,
+     'http://id.crossref.org/issn/1556-5068': 273653,
+     'http://id.crossref.org/issn/1611-3349': 329573}}}
+
+  In [4]: prefixes = Prefixes()
+
+  In [5]: prefixes.works('10.1590').facet('issn', 10)
+  Out[5]:
+  {'issn': {'value-count': 10,
+    'values': {'http://id.crossref.org/issn/0004-282X': 7712,
+     'http://id.crossref.org/issn/0034-8910': 4752,
+     'http://id.crossref.org/issn/0037-8682': 4179,
+     'http://id.crossref.org/issn/0074-0276': 7941,
+     'http://id.crossref.org/issn/0100-204X': 3946,
+     'http://id.crossref.org/issn/0100-4042': 4198,
+     'http://id.crossref.org/issn/0102-311X': 6548,
+     'http://id.crossref.org/issn/0103-8478': 6607,
+     'http://id.crossref.org/issn/1413-8123': 4658,
+     'http://id.crossref.org/issn/1516-3598': 4678}}}
+
+  In [6]: prefixes.works('10.1590').query('zika').facet('issn', 10)
+  Out[6]:
+  {'issn': {'value-count': 10,
+    'values': {'http://id.crossref.org/issn/0004-282X': 4,
+     'http://id.crossref.org/issn/0036-4665': 4,
+     'http://id.crossref.org/issn/0037-8682': 7,
+     'http://id.crossref.org/issn/0074-0276': 7,
+     'http://id.crossref.org/issn/0102-311X': 12,
+     'http://id.crossref.org/issn/0103-7331': 2,
+     'http://id.crossref.org/issn/0104-4230': 3,
+     'http://id.crossref.org/issn/1519-3829': 7,
+     'http://id.crossref.org/issn/1679-4508': 2,
+     'http://id.crossref.org/issn/1806-8324': 2}}}
 
 Journals
 --------
