@@ -64,7 +64,7 @@ Version
 
 This method returns the Crossref API version.
 
-.. code-bolck:: python
+.. code-block:: python
 
   In [1]: from crossref.restful import Journals
 
@@ -79,7 +79,7 @@ This method returns the total of itens a query result should retrive. This metho
 iterate and retrieve through the API documents. This method will fetch 0 documents
 and retrieve the value of **total-result** attribute.
 
-.. code-bolck:: python
+.. code-block:: python
 
   In [1]: from crossref.restful import Works
 
@@ -96,7 +96,7 @@ Url
 
 This method returns the url that will be used to query the Crossref API.
 
-.. code-bolck:: python
+.. code-block:: python
 
   In [1]: from crossref.restful import Works
 
@@ -149,7 +149,7 @@ parameters to iterate through the endpoints Journals, Types, Members and Prefixe
 For the **works** endpoint, the library will make use of the **cursor** to paginate through
 API until it is totally consumed.
 
-.. code-bolck:: python
+.. code-block:: python
 
   In [1]: from crossref.restful import Journals
 
