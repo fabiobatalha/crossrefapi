@@ -57,10 +57,27 @@ Query
 Base Methods
 ------------
 
-The base query methods could be used compounded with with query, filter, sort, order and facet methods.
+The base methods could be used compounded with with query, filter, sort, order and facet methods.
+
+Version
+```````
+
+This method returns the Crossref API version.
+
+.. code-bolck:: python
+
+  In [1]: from crossref.restful import Journals
+
+  In [2]: journals = Journals()
+
+  In [3]: journals.version
+  Out[3]: '1.0.0'
 
 Count
 `````
+This method returns the total of itens a query result should retrive. This method will not
+iterate and retrieve through the API documents. This method will fetch 0 documents
+and retrieve the value of **total-result** attribute.
 
 .. code-bolck:: python
 
@@ -76,6 +93,8 @@ Count
 
 Url
 ```
+
+This method returns the url that will be used to query the Crossref API.
 
 .. code-bolck:: python
 
@@ -120,3 +139,28 @@ Url
 
   In [16]: journals.works('0102-311X').query('zika').count()
   Out[16]: 12
+
+All
+```
+
+This method returns all items of an endpoint. It will use the limit offset
+parameters to iterate through the endpoints Journals, Types, Members and Prefixes.
+
+For the **works** endpoint, the library will make use of the **cursor** to paginate through
+API until it is totally consumed.
+
+.. code-bolck:: python
+
+  In [1]: from crossref.restful import Journals
+
+  In [2]: journals = Journals()
+
+  In [3]: for item in journals.all():
+     ...:     print(item['title'])
+     ...:
+  JNSM
+  New Comprehensive Biochemistry
+  New Frontiers in Ophthalmology
+  Oral Health Case Reports
+  Orbit A Journal of American Literature
+  ORDO
