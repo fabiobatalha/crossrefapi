@@ -123,7 +123,7 @@ Doi
 Journals
 --------
 
-Sampling the use of API Library to retrieve data from Journals endpoint.
+Exemplifying the use of API Library to retrieve data from Journals endpoint.
 
 .. code-block:: python
 
