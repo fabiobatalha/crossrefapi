@@ -2,14 +2,14 @@
 from setuptools import setup, find_packages
 
 install_requires = [
-    'requests==2.14.2'
+    'requests>=2.11.1'
 ]
 
 tests_require = []
 
 setup(
     name="crossrefapi",
-    version="1.0.3",
+    version="1.0.5",
     description="Library that implements the endpoints of the Crossref API",
     author="SciELO",
     author_email="scielo-dev@googlegroups.com",
