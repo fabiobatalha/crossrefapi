@@ -172,10 +172,17 @@ class Endpoint:
 
     def __iter__(self):
         request_url = str(self.request_url)
+
+        import pdb; pdb.set_trace()
         if 'sample' in self.request_params:
             request_params = self._escaped_pagging()
             result = do_http_request(
-                'get', self.request_url, data=request_params).json()
+                'get', self.request_url, data=request_params)
+
+            if result.status_code == 404:
+                raise StopIteration()
+
+            result = result.json()
 
             for item in result['message']['items']:
                 yield item
@@ -188,7 +195,12 @@ class Endpoint:
             request_params['rows'] = LIMIT
             while True:
                 result = do_http_request(
-                    'get', request_url, data=request_params).json()
+                    'get', request_url, data=request_params)
+
+                if result.status_code == 404:
+                    raise StopIteration()
+
+                result = result.json()
 
                 if len(result['message']['items']) == 0:
                     return
@@ -203,7 +215,12 @@ class Endpoint:
             request_params['rows'] = LIMIT
             while True:
                 result = do_http_request(
-                    'get', request_url, data=request_params).json()
+                    'get', request_url, data=request_params)
+
+                if result.status_code == 404:
+                    raise StopIteration()
+
+                result = result.json()
 
                 if len(result['message']['items']) == 0:
                     return
@@ -679,7 +696,12 @@ class Works(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get', request_url, data=request_params)
+
+        if result.status_code == 404:
+            return
+
+        result = result.json()
 
         return result['message'] if only_message is True else result
 
@@ -704,7 +726,12 @@ class Works(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get', request_url, data=request_params)
+
+        if result.status_code == 404:
+            return
+
+        result = result.json()
 
         return result['message'] if only_message is True else result
 
@@ -802,7 +829,12 @@ class Funders(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get', request_url, data=request_params)
+
+        if result.status_code == 404:
+            return
+
+        result = result.json()
 
         return result['message'] if only_message is True else result
 
@@ -951,7 +983,12 @@ class Members(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get', request_url, data=request_params)
+
+        if result.status_code == 404:
+            return
+
+        result = result.json()
 
         return result['message'] if only_message is True else result
 
@@ -1024,7 +1061,12 @@ class Types(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get', request_url, data=request_params)
+
+        if result.status_code == 404:
+            return
+
+        result = result.json()
 
         return result['message'] if only_message is True else result
 
@@ -1051,7 +1093,12 @@ class Types(Endpoint):
         request_params = dict(self.request_params)
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get', request_url, data=request_params)
+
+        if result.status_code == 404:
+            raise StopIteration()
+
+        result = result.json()
 
         for item in result['message']['items']:
             yield item
@@ -1129,7 +1176,12 @@ class Prefixes(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get', request_url, data=request_params)
+
+        if result.status_code == 404:
+            return
+
+        result = result.json()
 
         return result['message'] if only_message is True else result
 
@@ -1202,8 +1254,12 @@ class Journals(Endpoint):
         )
         request_params = {}
 
-        result = do_http_request(
-            'get', request_url, data=request_params).json()
+        result = do_http_request('get', request_url, data=request_params)
+
+        if result.status_code == 404:
+            return
+
+        result = result.json()
 
         return result['message'] if only_message is True else result
 
