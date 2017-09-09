@@ -295,7 +295,7 @@ class Works(Endpoint):
         'content-domain': None,
         'directory': validators.directory,
         'doi': None,
-        'from-accepted_date': validators.is_date,
+        'from-accepted-date': validators.is_date,
         'from-created-date': validators.is_date,
         'from-deposit-date': validators.is_date,
         'from-event-end-date': validators.is_date,
