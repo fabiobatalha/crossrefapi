@@ -9,7 +9,7 @@ tests_require = []
 
 setup(
     name="crossrefapi",
-    version="1.0.7",
+    version="1.0.8",
     description="Library that implements the endpoints of the Crossref API",
     author="SciELO",
     author_email="scielo-dev@googlegroups.com",

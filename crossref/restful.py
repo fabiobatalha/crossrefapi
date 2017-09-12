@@ -173,7 +173,6 @@ class Endpoint:
     def __iter__(self):
         request_url = str(self.request_url)
 
-        import pdb; pdb.set_trace()
         if 'sample' in self.request_params:
             request_params = self._escaped_pagging()
             result = do_http_request(
