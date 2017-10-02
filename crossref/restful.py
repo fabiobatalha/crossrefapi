@@ -943,6 +943,13 @@ class Members(Endpoint):
 
     ENDPOINT = 'members'
 
+    FILTER_VALIDATOR = {
+        'prefix': None,
+        'has-public-references': validators.is_bool,
+        'backfile-doi-count': validators.is_integer, 
+        'current-doi-count': validators.is_integer
+    }
+
     def query(self, *args):
         """
         This method retrieve an iterable object that implements the method
@@ -988,6 +995,54 @@ class Members(Endpoint):
             request_params['query'] = ' '.join([str(i) for i in args])
 
         return self.__class__(request_url, request_params)
+
+    def filter(self, **kwargs):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        This method can be used compounded and recursively with query, filter,
+        order, sort and facet methods.
+
+        kwargs: valid FILTER_VALIDATOR arguments.
+
+        return: iterable object of Members metadata
+
+        Example:
+            >>> from crossref.restful import Members
+            >>> members = Members()
+            >>> query = members.filter(has_public_references='true')
+            >>> for item in query:
+            ...     print(item['prefix'])
+            ...
+            [{u'public-references': False, u'name': u'Open Library of Humanities', u'value': u'10.16995'}, {u'public-references': True, u'name': u'Martin Eve', u'value': u'10.7766'}]
+            [{u'public-references': True, u'name': u'Institute of Business Research', u'value': u'10.24122'}]
+            ...
+        """
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
+        request_params = dict(self.request_params)
+
+        for fltr, value in kwargs.items():
+            decoded_fltr = fltr.replace('__', '.').replace('_', '-')
+            if decoded_fltr not in self.FILTER_VALIDATOR.keys():
+                raise UrlSyntaxError(
+                    'Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s' % (
+                        str(decoded_fltr),
+                        ', '.join(self.FILTER_VALIDATOR.keys())
+                    )
+                )
+
+            if self.FILTER_VALIDATOR[decoded_fltr] is not None:
+                self.FILTER_VALIDATOR[decoded_fltr](str(value))
+
+            if 'filter' not in request_params:
+                request_params['filter'] = decoded_fltr + ':' + str(value)
+            else:
+                request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
+
+        return self.__class__(request_url, request_params, context)
 
     def member(self, member_id, only_message=True):
         """
