@@ -634,7 +634,8 @@ class Works(Endpoint):
         """
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
-        request_params = {}
+        request_params = dict(self.request_params)
+
         try:
             if sample_size > 100:
                 raise UrlSyntaxError(
@@ -946,7 +947,7 @@ class Members(Endpoint):
     FILTER_VALIDATOR = {
         'prefix': None,
         'has-public-references': validators.is_bool,
-        'backfile-doi-count': validators.is_integer, 
+        'backfile-doi-count': validators.is_integer,
         'current-doi-count': validators.is_integer
     }
 
