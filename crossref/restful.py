@@ -280,6 +280,65 @@ class Works(Endpoint):
         'translator'
     )
 
+    FIELDS_SELECT = (
+        'abstract',
+        'URL',
+        'member',
+        'posted',
+        'score',
+        'created',
+        'degree',
+        'update-policy',
+        'short-title',
+        'license',
+        'ISSN',
+        'container-title',
+        'issued',
+        'update-to',
+        'issue',
+        'prefix',
+        'approved',
+        'indexed',
+        'article-number',
+        'clinical-trial-number',
+        'accepted',
+        'author',
+        'group-title',
+        'DOI',
+        'is-referenced-by-count',
+        'updated-by',
+        'event',
+        'chair',
+        'standards-body',
+        'original-title',
+        'funder',
+        'translator',
+        'archive',
+        'published-print',
+        'alternative-id',
+        'subject',
+        'subtitle',
+        'published-online',
+        'publisher-location',
+        'content-domain',
+        'reference',
+        'title',
+        'link',
+        'type',
+        'publisher',
+        'volume',
+        'references-count',
+        'ISBN',
+        'issn-type',
+        'assertion',
+        'deposited',
+        'page',
+        'content-created',
+        'short-container-title',
+        'relation',
+        'editor'
+    )
+
     FILTER_VALIDATOR = {
         'alternative_id': None,
         'archive': validators.archive,
@@ -435,6 +494,39 @@ class Works(Endpoint):
             )
 
         request_params['order'] = order
+
+        return self.__class__(request_url, request_params, context)
+
+    def select(self, *args):
+        """
+        """
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
+        request_params = dict(self.request_params)
+
+        select_args = []
+
+        invalid_select_args = []
+        for item in args:
+            if isinstance(item, list):
+                select_args += item
+
+            if isinstance(item, str):
+                select_args.append(item)
+
+        invalid_select_args = set(select_args) - set(self.FIELDS_SELECT)
+
+        if len(invalid_select_args) != 0:
+            raise UrlSyntaxError(
+                'Select field\'s specified as (%s) but must be one of: %s' % (
+                    ', '.join(invalid_select_args),
+                    ', '.join(self.FIELDS_SELECT)
+                )
+            )
+
+        request_params['select'] = ','.join(
+            sorted([i for i in set(request_params.get('select', '').split(',') + select_args) if i])
+        )
 
         return self.__class__(request_url, request_params, context)
 
