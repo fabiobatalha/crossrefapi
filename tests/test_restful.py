@@ -53,7 +53,7 @@ class RestfulTest(unittest.TestCase):
         self.assertEqual(result, 'https://api.crossref.org/works?select=DOI')
 
     def test_work_select_fields_multiple_parameter_and_array(self):
-        result = restful.Works(etiquette=self.etiquette).select('DOI', 'title').select('subject').select(['relation', 'editor']).url
+        result = restful.Works(etiquette=self.etiquette).select('DOI', 'title').select('subject').select(['relation', 'editor']).select('relation, editor').url
 
         self.assertEqual(result, 'https://api.crossref.org/works?select=DOI%2Ceditor%2Crelation%2Csubject%2Ctitle')
 

@@ -552,10 +552,10 @@ class Works(Endpoint):
         invalid_select_args = []
         for item in args:
             if isinstance(item, list):
-                select_args += item
+                select_args += [i.strip() for i in item]
 
             if isinstance(item, str):
-                select_args.append(item)
+                select_args += [i.strip() for i in item.split(',')]
 
         invalid_select_args = set(select_args) - set(self.FIELDS_SELECT)
 
