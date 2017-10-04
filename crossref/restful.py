@@ -3,7 +3,7 @@
 import requests
 import json
 
-from crossref import validators
+from crossref import validators, VERSION
 
 LIMIT = 100
 MAXOFFSET = 10000
@@ -23,7 +23,7 @@ class UrlSyntaxError(CrossrefAPIError, ValueError):
     pass
 
 
-def do_http_request(method, endpoint, data=None, files=None, timeout=10, only_headers=False):
+def do_http_request(method, endpoint, data=None, files=None, timeout=10, only_headers=False, custom_header=None):
 
     if only_headers is True:
         return requests.head(endpoint)
@@ -33,10 +33,15 @@ def do_http_request(method, endpoint, data=None, files=None, timeout=10, only_he
     else:
         action = requests.get
 
-    if method == 'post':
-        result = action(endpoint, data=data, files=files, timeout=timeout)
+    if custom_header:
+        headers = {'user-agent': custom_header}
     else:
-        result = action(endpoint, params=data, timeout=timeout)
+        headers = {'user-agent': str(Etiquette())}
+
+    if method == 'post':
+        result = action(endpoint, data=data, files=files, timeout=timeout, headers=headers)
+    else:
+        result = action(endpoint, params=data, timeout=timeout, headers=headers)
 
     return result
 
@@ -48,11 +53,32 @@ def build_url_endpoint(endpoint, context=None):
     return 'https://%s/%s' % (API, endpoint)
 
 
+class Etiquette:
+
+    def __init__(self, application_name='undefined', application_version='undefined', application_url='undefined', contact_email='anonymous'):
+
+        self.application_name = application_name
+        self.application_version = application_version
+        self.application_url = application_url
+        self.contact_email = contact_email
+
+    def __str__(self):
+
+        return '%s/%s (%s; mailto:%s) BasedOn: CrossrefAPI/%s' % (
+            self.application_name,
+            self.application_version,
+            self.application_url,
+            self.contact_email,
+            VERSION
+        )
+
+
 class Endpoint:
 
     CURSOR_AS_ITER_METHOD = False
 
-    def __init__(self, request_url=None, request_params=None, context=None):
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None):
+        self.etiquette = etiquette or Etiquette()
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
         self.context = context or ''
@@ -62,7 +88,7 @@ class Endpoint:
         request_params = dict(self.request_params)
         request_url = str(self.request_url)
 
-        result = do_http_request('get', request_url, only_headers=True)
+        result = do_http_request('get', request_url, only_headers=True, custom_header=str(self.etiquette))
 
         rate_limits = {
             'X-Rate-Limit-Limit': result.headers.get('X-Rate-Limit-Limit', 'undefined'),
@@ -132,7 +158,11 @@ class Endpoint:
         request_params['rows'] = 0
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        ).json()
 
         return int(result['message']['total-results'])
 
@@ -158,8 +188,9 @@ class Endpoint:
         """
         request_params = self._escaped_pagging()
 
+        sorted_request_params = sorted([(k, v) for k, v in request_params.items()])
         req = requests.Request(
-            'get', self.request_url, params=request_params).prepare()
+            'get', self.request_url, params=sorted_request_params).prepare()
 
         return req.url
 
@@ -176,7 +207,11 @@ class Endpoint:
         if 'sample' in self.request_params:
             request_params = self._escaped_pagging()
             result = do_http_request(
-                'get', self.request_url, data=request_params)
+                'get',
+                self.request_url,
+                data=request_params,
+                custom_header=str(self.etiquette)
+            )
 
             if result.status_code == 404:
                 raise StopIteration()
@@ -194,7 +229,11 @@ class Endpoint:
             request_params['rows'] = LIMIT
             while True:
                 result = do_http_request(
-                    'get', request_url, data=request_params)
+                    'get',
+                    request_url,
+                    data=request_params,
+                    ustom_header=str(self.etiquette)
+                )
 
                 if result.status_code == 404:
                     raise StopIteration()
@@ -214,7 +253,11 @@ class Endpoint:
             request_params['rows'] = LIMIT
             while True:
                 result = do_http_request(
-                    'get', request_url, data=request_params)
+                    'get',
+                    request_url,
+                    data=request_params,
+                    custom_header=str(self.etiquette)
+                )
 
                 if result.status_code == 404:
                     raise StopIteration()
@@ -280,6 +323,65 @@ class Works(Endpoint):
         'translator'
     )
 
+    FIELDS_SELECT = (
+        'abstract',
+        'URL',
+        'member',
+        'posted',
+        'score',
+        'created',
+        'degree',
+        'update-policy',
+        'short-title',
+        'license',
+        'ISSN',
+        'container-title',
+        'issued',
+        'update-to',
+        'issue',
+        'prefix',
+        'approved',
+        'indexed',
+        'article-number',
+        'clinical-trial-number',
+        'accepted',
+        'author',
+        'group-title',
+        'DOI',
+        'is-referenced-by-count',
+        'updated-by',
+        'event',
+        'chair',
+        'standards-body',
+        'original-title',
+        'funder',
+        'translator',
+        'archive',
+        'published-print',
+        'alternative-id',
+        'subject',
+        'subtitle',
+        'published-online',
+        'publisher-location',
+        'content-domain',
+        'reference',
+        'title',
+        'link',
+        'type',
+        'publisher',
+        'volume',
+        'references-count',
+        'ISBN',
+        'issn-type',
+        'assertion',
+        'deposited',
+        'page',
+        'content-created',
+        'short-container-title',
+        'relation',
+        'editor'
+    )
+
     FILTER_VALIDATOR = {
         'alternative_id': None,
         'archive': validators.archive,
@@ -337,6 +439,7 @@ class Works(Endpoint):
         'license.delay': validators.is_integer,
         'license.url': None,
         'license.version': None,
+        'location': None,
         'member': validators.is_integer,
         'orcid': None,
         'prefix': None,
@@ -434,6 +537,39 @@ class Works(Endpoint):
             )
 
         request_params['order'] = order
+
+        return self.__class__(request_url, request_params, context)
+
+    def select(self, *args):
+        """
+        """
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
+        request_params = dict(self.request_params)
+
+        select_args = []
+
+        invalid_select_args = []
+        for item in args:
+            if isinstance(item, list):
+                select_args += [i.strip() for i in item]
+
+            if isinstance(item, str):
+                select_args += [i.strip() for i in item.split(',')]
+
+        invalid_select_args = set(select_args) - set(self.FIELDS_SELECT)
+
+        if len(invalid_select_args) != 0:
+            raise UrlSyntaxError(
+                'Select field\'s specified as (%s) but must be one of: %s' % (
+                    ', '.join(invalid_select_args),
+                    ', '.join(self.FIELDS_SELECT)
+                )
+            )
+
+        request_params['select'] = ','.join(
+            sorted([i for i in set(request_params.get('select', '').split(',') + select_args) if i])
+        )
 
         return self.__class__(request_url, request_params, context)
 
@@ -557,7 +693,11 @@ class Works(Endpoint):
 
         request_params['facet'] = '%s:%s' % (facet_name, facet_count)
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        ).json()
 
         return result['message']['facets']
 
@@ -633,7 +773,8 @@ class Works(Endpoint):
         """
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
-        request_params = {}
+        request_params = dict(self.request_params)
+
         try:
             if sample_size > 100:
                 raise UrlSyntaxError(
@@ -695,7 +836,11 @@ class Works(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -725,7 +870,11 @@ class Works(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -761,7 +910,12 @@ class Works(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -774,6 +928,10 @@ class Funders(Endpoint):
     CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = 'funders'
+
+    FILTER_VALIDATOR = {
+        'location': None,
+    }
 
     def query(self, *args):
         """
@@ -804,6 +962,55 @@ class Funders(Endpoint):
 
         return self.__class__(request_url, request_params)
 
+    def filter(self, **kwargs):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        This method can be used compounded and recursively with query, filter,
+        order, sort and facet methods.
+
+        kwargs: valid FILTER_VALIDATOR arguments.
+
+        return: iterable object of Funders metadata
+
+        Example:
+            >>> from crossref.restful import Funders
+            >>> funders = Funders()
+            >>> query = funders.filter(location='Japan')
+            >>> for item in query:
+            ...     print(item['name'], item['location'])
+            ...
+            (u'Central Research Institute, Fukuoka University', u'Japan')
+            (u'Tohoku University', u'Japan')
+            (u'Information-Technology Promotion Agency', u'Japan')
+            ...
+        """
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
+        request_params = dict(self.request_params)
+
+        for fltr, value in kwargs.items():
+            decoded_fltr = fltr.replace('__', '.').replace('_', '-')
+            if decoded_fltr not in self.FILTER_VALIDATOR.keys():
+                raise UrlSyntaxError(
+                    'Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s' % (
+                        str(decoded_fltr),
+                        ', '.join(self.FILTER_VALIDATOR.keys())
+                    )
+                )
+
+            if self.FILTER_VALIDATOR[decoded_fltr] is not None:
+                self.FILTER_VALIDATOR[decoded_fltr](str(value))
+
+            if 'filter' not in request_params:
+                request_params['filter'] = decoded_fltr + ':' + str(value)
+            else:
+                request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
+
+        return self.__class__(request_url, request_params, context)
+
     def funder(self, funder_id, only_message=True):
         """funder
         This method retrive a crossref funder metadata related to the
@@ -828,7 +1035,11 @@ class Funders(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -864,7 +1075,12 @@ class Funders(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -888,6 +1104,13 @@ class Members(Endpoint):
     CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = 'members'
+
+    FILTER_VALIDATOR = {
+        'prefix': None,
+        'has-public-references': validators.is_bool,
+        'backfile-doi-count': validators.is_integer,
+        'current-doi-count': validators.is_integer
+    }
 
     def query(self, *args):
         """
@@ -934,6 +1157,54 @@ class Members(Endpoint):
             request_params['query'] = ' '.join([str(i) for i in args])
 
         return self.__class__(request_url, request_params)
+
+    def filter(self, **kwargs):
+        """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        This method can be used compounded and recursively with query, filter,
+        order, sort and facet methods.
+
+        kwargs: valid FILTER_VALIDATOR arguments.
+
+        return: iterable object of Members metadata
+
+        Example:
+            >>> from crossref.restful import Members
+            >>> members = Members()
+            >>> query = members.filter(has_public_references='true')
+            >>> for item in query:
+            ...     print(item['prefix'])
+            ...
+            [{u'public-references': False, u'name': u'Open Library of Humanities', u'value': u'10.16995'}, {u'public-references': True, u'name': u'Martin Eve', u'value': u'10.7766'}]
+            [{u'public-references': True, u'name': u'Institute of Business Research', u'value': u'10.24122'}]
+            ...
+        """
+        context = str(self.context)
+        request_url = build_url_endpoint(self.ENDPOINT, context)
+        request_params = dict(self.request_params)
+
+        for fltr, value in kwargs.items():
+            decoded_fltr = fltr.replace('__', '.').replace('_', '-')
+            if decoded_fltr not in self.FILTER_VALIDATOR.keys():
+                raise UrlSyntaxError(
+                    'Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s' % (
+                        str(decoded_fltr),
+                        ', '.join(self.FILTER_VALIDATOR.keys())
+                    )
+                )
+
+            if self.FILTER_VALIDATOR[decoded_fltr] is not None:
+                self.FILTER_VALIDATOR[decoded_fltr](str(value))
+
+            if 'filter' not in request_params:
+                request_params['filter'] = decoded_fltr + ':' + str(value)
+            else:
+                request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
+
+        return self.__class__(request_url, request_params, context)
 
     def member(self, member_id, only_message=True):
         """
@@ -982,7 +1253,11 @@ class Members(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1018,7 +1293,12 @@ class Members(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -1060,7 +1340,11 @@ class Types(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1092,7 +1376,11 @@ class Types(Endpoint):
         request_params = dict(self.request_params)
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             raise StopIteration()
@@ -1129,7 +1417,12 @@ class Types(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -1175,7 +1468,11 @@ class Prefixes(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1253,7 +1550,12 @@ class Journals(Endpoint):
         )
         request_params = {}
 
-        result = do_http_request('get', request_url, data=request_params)
+        result = do_http_request(
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1290,7 +1592,12 @@ class Journals(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -1343,7 +1650,13 @@ class Depositor(object):
         }
 
         result = do_http_request(
-            'post', endpoint, data=params, files=files, timeout=10)
+            'post',
+            endpoint,
+            data=params,
+            files=files,
+            timeout=10,
+            custom_header=str(self.etiquette)
+        )
 
         return result
 
@@ -1367,7 +1680,13 @@ class Depositor(object):
             'type': data_type
         }
 
-        result = do_http_request('get', endpoint, data=params, timeout=10)
+        result = do_http_request(
+            'get',
+            endpoint,
+            data=params,
+            timeout=10,
+            custom_header=str(self.etiquette)
+        )
 
         return result
 
@@ -1391,6 +1710,12 @@ class Depositor(object):
             'type': data_type
         }
 
-        result = do_http_request('get', endpoint, data=params, timeout=10)
+        result = do_http_request(
+            'get',
+            endpoint,
+            data=params,
+            timeout=10,
+            custom_header=str(self.etiquette)
+        )
 
         return result
