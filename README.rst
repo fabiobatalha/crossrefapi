@@ -34,7 +34,6 @@ Agency
   {'DOI': '10.1590/0102-311x00133115',
    'agency': {'id': 'crossref', 'label': 'CrossRef'}}
 
-
 Sample
 ``````
 
@@ -118,6 +117,51 @@ Doi
    'title': ['Congenital Zika virus syndrome'],
    'type': 'journal-article',
    'volume': '32'}
+
+Select
+``````
+
+.. code-block:: python
+
+    In [1]: from crossref.restful import Works
+
+    In [2]: works = Works()
+
+    In [3]: for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI, prefix'):
+       ...:     print(i)
+       ...:
+    {'DOI': '10.1111/str.12144', 'member': 'http://id.crossref.org/member/311', 'prefix': '10.1111'}
+    {'DOI': '10.1002/admi.201400154', 'member': 'http://id.crossref.org/member/311', 'prefix': '10.1002'}
+    {'DOI': '10.1016/j.surfcoat.2010.10.057', 'member': 'http://id.crossref.org/member/78', 'prefix': '10.1016'}
+    {'DOI': '10.1007/s10528-015-9707-8', 'member': 'http://id.crossref.org/member/297', 'prefix': '10.1007'}
+    {'DOI': '10.1016/j.powtec.2016.04.009', 'member': 'http://id.crossref.org/member/78', 'prefix': '10.1016'}
+
+    In [4]: for i in works.filter(has_funder='true', has_license='true').sample(5).select(['DOI', 'prefix']):
+       ...:     print(i)
+       ...:
+    {'DOI': '10.1002/jgrd.50059', 'member': 'http://id.crossref.org/member/311', 'prefix': '10.1002'}
+    {'DOI': '10.1111/ajt.13880', 'member': 'http://id.crossref.org/member/311', 'prefix': '10.1111'}
+    {'DOI': '10.1016/j.apgeochem.2015.05.006', 'member': 'http://id.crossref.org/member/78', 'prefix': '10.1016'}
+    {'DOI': '10.1016/j.triboint.2015.01.023', 'member': 'http://id.crossref.org/member/78', 'prefix': '10.1016'}
+    {'DOI': '10.1007/s10854-016-4649-4', 'member': 'http://id.crossref.org/member/297', 'prefix': '10.1007'}
+
+    In [5]: for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI').select('prefix'):
+       ...:     print(i)
+       ...:
+    {'DOI': '10.1002/mrm.25790', 'member': 'http://id.crossref.org/member/311', 'prefix': '10.1002'}
+    {'DOI': '10.1016/j.istruc.2016.11.001', 'member': 'http://id.crossref.org/member/78', 'prefix': '10.1016'}
+    {'DOI': '10.1002/anie.201505015', 'member': 'http://id.crossref.org/member/311', 'prefix': '10.1002'}
+    {'DOI': '10.1016/j.archoralbio.2010.11.011', 'member': 'http://id.crossref.org/member/78', 'prefix': '10.1016'}
+    {'DOI': '10.1145/3035918.3064012', 'member': 'http://id.crossref.org/member/320', 'prefix': '10.1145'}
+
+    In [6]: for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI', 'prefix'):
+       ...:     print(i)
+       ...:
+    {'DOI': '10.1016/j.cplett.2015.11.062', 'member': 'http://id.crossref.org/member/78', 'prefix': '10.1016'}
+    {'DOI': '10.1016/j.bjp.2015.06.001', 'member': 'http://id.crossref.org/member/78', 'prefix': '10.1016'}
+    {'DOI': '10.1111/php.12613', 'member': 'http://id.crossref.org/member/311', 'prefix': '10.1111'}
+    {'DOI': '10.1002/cfg.144', 'member': 'http://id.crossref.org/member/98', 'prefix': '10.1155'}
+    {'DOI': '10.1002/alr.21987', 'member': 'http://id.crossref.org/member/311', 'prefix': '10.1002'}
 
 Facet
 `````
@@ -384,3 +428,38 @@ API until it is totally consumed.
   Oral Health Case Reports
   Orbit A Journal of American Literature
   ORDO
+
+Support for Polite Requests (Etiquette)
+---------------------------------------
+
+Respecting the Crossref API polices for polite requests. This library allows users
+to setup an Etiquette Class to be used in the http requests.
+
+.. code-block:: python
+
+    In [1]: from crossref.restful import Works, Etiquette
+
+    In [2]: my_etiquette = Etiquette('My Project Name', 'My Project version', 'My Project URL', 'My contact email')
+
+    In [3]: str(my_etiquette)
+    Out[3]: 'My Project Name/My Project version (My Project URL; mailto:My contact email) BasedOn: CrossrefAPI/1.1.0'
+
+    In [4]: my_etiquette = Etiquette('My Project Name', '0.2alpha', 'https://myalphaproject.com', 'anonymous@myalphaproject.com')
+
+    In [5]: str(my_etiquette)
+    Out[5]: 'My Project Name/0.2alpha (https://myalphaproject.com; mailto:anonymous@myalphaproject.com) BasedOn: CrossrefAPI/1.1.0'
+
+    In [6]: works = Works(etiquette=my_etiquette)
+
+    In [7]: for i in works.sample(5).select('DOI'):
+       ...:     print(i)
+       ...:
+
+    {'DOI': '10.1016/j.ceramint.2014.10.086'}
+    {'DOI': '10.1016/j.biomaterials.2012.02.034'}
+    {'DOI': '10.1001/jamaoto.2013.6450'}
+    {'DOI': '10.1016/s0021-9290(17)30138-0'}
+    {'DOI': '10.1109/ancs.2011.11'}
+
+
+Voilá!!! The requests made for the Crossref API, were made setting the user-agent as: 'My Project Name/0.2alpha (https://myalphaproject.com; mailto:anonymous@myalphaproject.com) BasedOn: CrossrefAPI/1.1.0'

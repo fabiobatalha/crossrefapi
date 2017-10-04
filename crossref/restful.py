@@ -78,6 +78,7 @@ class Endpoint:
     CURSOR_AS_ITER_METHOD = False
 
     def __init__(self, request_url=None, request_params=None, context=None, etiquette=None):
+
         self.etiquette = etiquette or Etiquette()
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
@@ -88,7 +89,12 @@ class Endpoint:
         request_params = dict(self.request_params)
         request_url = str(self.request_url)
 
-        result = do_http_request('get', request_url, only_headers=True, custom_header=str(self.etiquette))
+        result = do_http_request(
+            'get',
+            request_url,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         rate_limits = {
             'X-Rate-Limit-Limit': result.headers.get('X-Rate-Limit-Limit', 'undefined'),
@@ -121,7 +127,11 @@ class Endpoint:
         request_url = str(self.request_url)
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        ).json()
 
         return result['message-version']
 
@@ -199,7 +209,7 @@ class Endpoint:
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = {}
 
-        return iter(self.__class__(request_url, request_params, context))
+        return iter(self.__class__(request_url, request_params, context, self.etiquette))
 
     def __iter__(self):
         request_url = str(self.request_url)
@@ -232,7 +242,7 @@ class Endpoint:
                     'get',
                     request_url,
                     data=request_params,
-                    ustom_header=str(self.etiquette)
+                    custom_header=str(self.etiquette)
                 )
 
                 if result.status_code == 404:
@@ -538,11 +548,72 @@ class Works(Endpoint):
 
         request_params['order'] = order
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def select(self, *args):
         """
+        This method retrieve an iterable object that implements the method
+        __iter__. The arguments given will compose the parameters in the
+        request url.
+
+        This method can be used compounded with query, filter,
+        sort and facet methods.
+
+        args: valid FIELDS_SELECT arguments.
+
+        return: iterable object of Works metadata
+
+        Example 1:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>> for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI, prefix'):
+            ...     print(i)
+            ...
+            {'DOI': '10.1016/j.jdiacomp.2016.06.005', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.mssp.2015.07.076', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1002/slct.201700168', 'prefix': '10.1002', 'member': 'http://id.crossref.org/member/311'}
+            {'DOI': '10.1016/j.actbio.2017.01.034', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.optcom.2013.11.013', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            ...
+        Example 2:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+
+            >>> for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI').select('prefix'):
+            >>>     print(i)
+            ...
+            {'DOI': '10.1016/j.sajb.2016.03.010', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.jneumeth.2009.08.017', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.tetlet.2016.05.058', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1007/s00170-017-0689-z', 'prefix': '10.1007', 'member': 'http://id.crossref.org/member/297'}
+            {'DOI': '10.1016/j.dsr.2016.03.004', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            ...
+        Example: 3:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>>: for i in works.filter(has_funder='true', has_license='true').sample(5).select(['DOI', 'prefix']):
+            >>>      print(i)
+            ...
+            {'DOI': '10.1111/zoj.12146', 'prefix': '10.1093', 'member': 'http://id.crossref.org/member/286'}
+            {'DOI': '10.1016/j.bios.2014.04.018', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.cej.2016.10.011', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.dci.2017.08.001', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.icheatmasstransfer.2016.09.012', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            ...
+        Example: 4:
+            >>> from crossref.restful import Works
+            >>> works = Works()
+            >>>: for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI', 'prefix'):
+            >>>      print(i)
+            ...
+            {'DOI': '10.1111/zoj.12146', 'prefix': '10.1093', 'member': 'http://id.crossref.org/member/286'}
+            {'DOI': '10.1016/j.bios.2014.04.018', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.cej.2016.10.011', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.dci.2017.08.001', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.icheatmasstransfer.2016.09.012', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            ...
         """
+
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
@@ -571,7 +642,7 @@ class Works(Endpoint):
             sorted([i for i in set(request_params.get('select', '').split(',') + select_args) if i])
         )
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def sort(self, sort='score'):
         """
@@ -627,7 +698,7 @@ class Works(Endpoint):
 
         request_params['sort'] = sort
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def filter(self, **kwargs):
         """
@@ -675,7 +746,7 @@ class Works(Endpoint):
             else:
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def facet(self, facet_name, facet_count=100):
         context = str(self.context)
@@ -750,7 +821,7 @@ class Works(Endpoint):
                 )
             request_params['query.%s' % field.replace('_', '-')] = value
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def sample(self, sample_size=20):
         """
@@ -787,7 +858,7 @@ class Works(Endpoint):
 
         request_params['sample'] = sample_size
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def doi(self, doi, only_message=True):
         """
@@ -960,7 +1031,7 @@ class Funders(Endpoint):
         if args:
             request_params['query'] = ' '.join([str(i) for i in args])
 
-        return self.__class__(request_url, request_params)
+        return self.__class__(request_url, request_params, self.etiquette)
 
     def filter(self, **kwargs):
         """
@@ -1009,7 +1080,7 @@ class Funders(Endpoint):
             else:
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def funder(self, funder_id, only_message=True):
         """funder
@@ -1150,13 +1221,14 @@ class Members(Endpoint):
             'last-status-check-time': 1496034177684, 'id': 8334, 'tokens': ['the', 'new', 'korean', 'philosophical',
             'association'], 'primary-name': 'The New Korean Philosophical Association'}
         """
+        context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT)
         request_params = dict(self.request_params)
 
         if args:
             request_params['query'] = ' '.join([str(i) for i in args])
 
-        return self.__class__(request_url, request_params)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def filter(self, **kwargs):
         """
@@ -1204,7 +1276,7 @@ class Members(Endpoint):
             else:
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params, context)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def member(self, member_id, only_message=True):
         """
@@ -1520,13 +1592,14 @@ class Journals(Endpoint):
             'flags': None, 'breakdowns': None, 'ISSN': ['2320-4664', '2277-338X'],
             'title': 'International Journal of Medical Science and Public Health'}
         """
+        context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT)
         request_params = dict(self.request_params)
 
         if args:
             request_params['query'] = ' '.join([str(i) for i in args])
 
-        return self.__class__(request_url, request_params)
+        return self.__class__(request_url, request_params, context, self.etiquette)
 
     def journal(self, issn, only_message=True):
         """
