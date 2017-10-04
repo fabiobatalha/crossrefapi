@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
+from crossref import VERSION
+
 install_requires = [
     'requests>=2.11.1'
 ]
@@ -9,7 +11,7 @@ tests_require = []
 
 setup(
     name="crossrefapi",
-    version="1.1.0",
+    version=VERSION,
     description="Library that implements the endpoints of the Crossref API",
     author="SciELO",
     author_email="scielo-dev@googlegroups.com",

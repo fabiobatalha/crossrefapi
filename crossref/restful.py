@@ -3,7 +3,7 @@
 import requests
 import json
 
-from crossref import validators
+from crossref import validators, VERSION
 
 LIMIT = 100
 MAXOFFSET = 10000
@@ -23,7 +23,7 @@ class UrlSyntaxError(CrossrefAPIError, ValueError):
     pass
 
 
-def do_http_request(method, endpoint, data=None, files=None, timeout=10, only_headers=False):
+def do_http_request(method, endpoint, data=None, files=None, timeout=10, only_headers=False, custom_header=None):
 
     if only_headers is True:
         return requests.head(endpoint)
@@ -33,10 +33,15 @@ def do_http_request(method, endpoint, data=None, files=None, timeout=10, only_he
     else:
         action = requests.get
 
-    if method == 'post':
-        result = action(endpoint, data=data, files=files, timeout=timeout)
+    if custom_header:
+        headers = {'user-agent': custom_header}
     else:
-        result = action(endpoint, params=data, timeout=timeout)
+        headers = {'user-agent': str(Etiquette())}
+
+    if method == 'post':
+        result = action(endpoint, data=data, files=files, timeout=timeout, headers=headers)
+    else:
+        result = action(endpoint, params=data, timeout=timeout, headers=headers)
 
     return result
 
@@ -48,11 +53,32 @@ def build_url_endpoint(endpoint, context=None):
     return 'https://%s/%s' % (API, endpoint)
 
 
+class Etiquette:
+
+    def __init__(self, application_name='undefined', application_version='undefined', application_url='undefined', contact_email='anonymous'):
+
+        self.application_name = application_name
+        self.application_version = application_version
+        self.application_url = application_url
+        self.contact_email = contact_email
+
+    def __str__(self):
+
+        return '%s/%s (%s; mailto:%s) BasedOn: CrossrefAPI/%s' % (
+            self.application_name,
+            self.application_version,
+            self.application_url,
+            self.contact_email,
+            VERSION
+        )
+
+
 class Endpoint:
 
     CURSOR_AS_ITER_METHOD = False
 
-    def __init__(self, request_url=None, request_params=None, context=None):
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None):
+        self.etiquette = etiquette or Etiquette()
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
         self.context = context or ''
@@ -62,7 +88,7 @@ class Endpoint:
         request_params = dict(self.request_params)
         request_url = str(self.request_url)
 
-        result = do_http_request('get', request_url, only_headers=True)
+        result = do_http_request('get', request_url, only_headers=True, custom_header=str(self.etiquette))
 
         rate_limits = {
             'X-Rate-Limit-Limit': result.headers.get('X-Rate-Limit-Limit', 'undefined'),
@@ -132,7 +158,11 @@ class Endpoint:
         request_params['rows'] = 0
 
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        ).json()
 
         return int(result['message']['total-results'])
 
@@ -158,8 +188,9 @@ class Endpoint:
         """
         request_params = self._escaped_pagging()
 
+        sorted_request_params = sorted([(k, v) for k, v in request_params.items()])
         req = requests.Request(
-            'get', self.request_url, params=request_params).prepare()
+            'get', self.request_url, params=sorted_request_params).prepare()
 
         return req.url
 
@@ -176,7 +207,11 @@ class Endpoint:
         if 'sample' in self.request_params:
             request_params = self._escaped_pagging()
             result = do_http_request(
-                'get', self.request_url, data=request_params)
+                'get',
+                self.request_url,
+                data=request_params,
+                custom_header=str(self.etiquette)
+            )
 
             if result.status_code == 404:
                 raise StopIteration()
@@ -194,7 +229,11 @@ class Endpoint:
             request_params['rows'] = LIMIT
             while True:
                 result = do_http_request(
-                    'get', request_url, data=request_params)
+                    'get',
+                    request_url,
+                    data=request_params,
+                    ustom_header=str(self.etiquette)
+                )
 
                 if result.status_code == 404:
                     raise StopIteration()
@@ -214,7 +253,11 @@ class Endpoint:
             request_params['rows'] = LIMIT
             while True:
                 result = do_http_request(
-                    'get', request_url, data=request_params)
+                    'get',
+                    request_url,
+                    data=request_params,
+                    custom_header=str(self.etiquette)
+                )
 
                 if result.status_code == 404:
                     raise StopIteration()
@@ -650,7 +693,11 @@ class Works(Endpoint):
 
         request_params['facet'] = '%s:%s' % (facet_name, facet_count)
         result = do_http_request(
-            'get', request_url, data=request_params).json()
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        ).json()
 
         return result['message']['facets']
 
@@ -789,7 +836,11 @@ class Works(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -819,7 +870,11 @@ class Works(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -855,7 +910,12 @@ class Works(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -975,7 +1035,11 @@ class Funders(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1011,7 +1075,12 @@ class Funders(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -1184,7 +1253,11 @@ class Members(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1220,7 +1293,12 @@ class Members(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -1262,7 +1340,11 @@ class Types(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1294,7 +1376,11 @@ class Types(Endpoint):
         request_params = dict(self.request_params)
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             raise StopIteration()
@@ -1331,7 +1417,12 @@ class Types(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -1377,7 +1468,11 @@ class Prefixes(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params)
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1455,7 +1550,12 @@ class Journals(Endpoint):
         )
         request_params = {}
 
-        result = do_http_request('get', request_url, data=request_params)
+        result = do_http_request(
+            'get',
+            request_url,
+            data=request_params,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return
@@ -1492,7 +1592,12 @@ class Journals(Endpoint):
         request_params = {}
 
         result = do_http_request(
-            'get', request_url, data=request_params, only_headers=True)
+            'get',
+            request_url,
+            data=request_params,
+            only_headers=True,
+            custom_header=str(self.etiquette)
+        )
 
         if result.status_code == 404:
             return False
@@ -1545,7 +1650,13 @@ class Depositor(object):
         }
 
         result = do_http_request(
-            'post', endpoint, data=params, files=files, timeout=10)
+            'post',
+            endpoint,
+            data=params,
+            files=files,
+            timeout=10,
+            custom_header=str(self.etiquette)
+        )
 
         return result
 
@@ -1569,7 +1680,13 @@ class Depositor(object):
             'type': data_type
         }
 
-        result = do_http_request('get', endpoint, data=params, timeout=10)
+        result = do_http_request(
+            'get',
+            endpoint,
+            data=params,
+            timeout=10,
+            custom_header=str(self.etiquette)
+        )
 
         return result
 
@@ -1593,6 +1710,12 @@ class Depositor(object):
             'type': data_type
         }
 
-        result = do_http_request('get', endpoint, data=params, timeout=10)
+        result = do_http_request(
+            'get',
+            endpoint,
+            data=params,
+            timeout=10,
+            custom_header=str(self.etiquette)
+        )
 
         return result
