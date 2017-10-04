@@ -433,7 +433,7 @@ Support for Polite Requests (Etiquette)
 ---------------------------------------
 
 Respecting the Crossref API polices for polite requests. This library allows users
-to setup an Etiquette Class to be used in the http requests.
+to setup an Etiquette object to be used in the http requests.
 
 .. code-block:: python
 
