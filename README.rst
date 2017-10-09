@@ -647,11 +647,17 @@ Explaining the code
   Depositor('your prefix', 'your crossref user', 'your crossref password', etiquette)
 
 **Line 4:** Requesting the DOI (Id do not means you DOI was registered, it is just a DOI Request)
+
 **Line 5:** Checking the DOI request response.
+
 **Line 6:** Printing the DOI request response body.
+
 **Line 7:** Requesting the DOI registering status.
+
 **Line 8:** Checking the DOI registering status, reading the body of the response. You should parse this XML to have the current status of the DOI registering request. You should do this util have an success or error status retrieved.
+
 **Line 9-12:** Rechecking the request status. It is still in queue. You can also set the response type between ['result', 'contents'], where result will retrieve the status of the DOI registering process, and contents will retrieve the submitted XML content while requesting the DOI.
+
 **Line 13-14:** Checking the content submitted passing the attribute data_type='contents'.
 
 
