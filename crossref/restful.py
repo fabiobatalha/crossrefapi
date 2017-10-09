@@ -1692,8 +1692,9 @@ class Journals(Endpoint):
 
 class Depositor(object):
 
-    def __init__(self, prefix, api_user, api_key):
+    def __init__(self, prefix, api_user, api_key, etiquette=None):
 
+        self.etiquette = etiquette or Etiquette()
         self.prefix = prefix
         self.api_user = api_user
         self.api_key = api_key
