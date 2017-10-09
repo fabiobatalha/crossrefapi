@@ -660,5 +660,7 @@ Explaining the code
 
 **Line 13-14:** Checking the content submitted passing the attribute data_type='contents'.
 
+**Line 15-16:** After a while, the success status was received.
+
 
 
