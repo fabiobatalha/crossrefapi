@@ -463,3 +463,209 @@ to setup an Etiquette object to be used in the http requests.
 
 
 Voilá!!! The requests made for the Crossref API, were made setting the user-agent as: 'My Project Name/0.2alpha (https://myalphaproject.com; mailto:anonymous@myalphaproject.com) BasedOn: CrossrefAPI/1.1.0'
+
+
+Depositing Metadata to Crossref
+-------------------------------
+
+This library implements the deposit operation "doMDUpload", it means you are able to submit Digital Objects Metadata to Crossref. Se more are: https://support.crossref.org/hc/en-us/articles/214960123
+
+To do that, you must have an active publisher account with crossref.org.
+
+# First of all, you need a valid XML following the crossref DTD.
+
+.. code-block:: xml
+
+  <?xml version='1.0' encoding='utf-8'?>
+  <doi_batch xmlns:jats="http://www.ncbi.nlm.nih.gov/JATS1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.crossref.org/schema/4.4.0" version="4.4.0" xsi:schemaLocation="http://www.crossref.org/schema/4.4.0 http://www.crossref.org/schemas/crossref4.4.0.xsd">
+    <head>
+      <doi_batch_id>c5473e12dc8e4f36a40f76f8eae15280</doi_batch_id>
+      <timestamp>20171009132847</timestamp>
+      <depositor>
+        <depositor_name>SciELO</depositor_name>
+        <email_address>crossref@scielo.org</email_address>
+      </depositor>
+      <registrant>SciELO</registrant>
+    </head>
+    <body>
+      <journal>
+        <journal_metadata>
+          <full_title>Revista Brasileira de Ciência Avícola</full_title>
+          <abbrev_title>Rev. Bras. Cienc. Avic.</abbrev_title>
+          <issn media_type="electronic">1516-635X</issn>
+        </journal_metadata>
+        <journal_issue>
+          <publication_date media_type="print">
+            <month>09</month>
+            <year>2017</year>
+          </publication_date>
+          <journal_volume>
+            <volume>19</volume>
+          </journal_volume>
+          <issue>3</issue>
+        </journal_issue>
+        <journal_article publication_type="full_text" reference_distribution_opts="any">
+          <titles>
+            <title>Climatic Variation: Effects on Stress Levels, Feed Intake, and Bodyweight of Broilers</title>
+          </titles>
+          <contributors>
+            <person_name contributor_role="author" sequence="first">
+              <given_name>R</given_name>
+              <surname>Osti</surname>
+              <affiliation>Huazhong Agricultural University,  China</affiliation>
+            </person_name>
+            <person_name contributor_role="author" sequence="additional">
+              <given_name>D</given_name>
+              <surname>Bhattarai</surname>
+              <affiliation>Huazhong Agricultural University,  China</affiliation>
+            </person_name>
+            <person_name contributor_role="author" sequence="additional">
+              <given_name>D</given_name>
+              <surname>Zhou</surname>
+              <affiliation>Huazhong Agricultural University,  China</affiliation>
+            </person_name>
+          </contributors>
+          <publication_date media_type="print">
+            <month>09</month>
+            <year>2017</year>
+          </publication_date>
+          <pages>
+            <first_page>489</first_page>
+            <last_page>496</last_page>
+          </pages>
+          <publisher_item>
+            <identifier id_type="pii">S1516-635X2017000300489</identifier>
+          </publisher_item>
+          <doi_data>
+            <doi>10.1590/1806-9061-2017-0494</doi>
+            <resource>http://www.scielo.br/scielo.php?script=sci_arttext&amp;pid=S1516-635X2017000300489&amp;lng=en&amp;tlng=en</resource>
+          </doi_data>
+          <citation_list>
+            <citation key="ref1">
+              <journal_title>Journal of Agriculture Science</journal_title>
+              <author>Alade O</author>
+              <volume>5</volume>
+              <first_page>176</first_page>
+              <cYear>2013</cYear>
+              <article_title>Perceived effect of climate variation on poultry production in Oke Ogun area of Oyo State</article_title>
+            </citation>
+            <citation key="ref2">
+              <journal_title>Asian-Australian Journal of Animal Science</journal_title>
+              <author>Al-Aqil A</author>
+              <volume>22</volume>
+              <first_page>1581</first_page>
+              <cYear>2009</cYear>
+              <article_title>The effects of the hot, humid tropical climate and early age feed restriction on stress and fear responses, and performance in broiler chickens</article_title>
+            </citation>
+            <citation key="ref3">
+              <journal_title>Poultry Science</journal_title>
+              <author>Alm M</author>
+              <volume>100</volume>
+              <cYear>2016</cYear>
+              <article_title>Welfare indicators in laying hens in relation to nest exclusion</article_title>
+            </citation>
+
+            ...
+
+            <citation key="ref40">
+              <journal_title>Poultry Science</journal_title>
+              <author>Zulkifli I</author>
+              <volume>88</volume>
+              <first_page>471</first_page>
+              <cYear>2009</cYear>
+              <article_title>Crating and heat stress influence blood parameters and heat shock protein 70 expression in broiler chickens showing short or long tonic immobility reactions</article_title>
+            </citation>
+          </citation_list>
+        </journal_article>
+      </journal>
+    </body>
+  </doi_batch>
+
+#. Second! Using the library
+
+  .. code-block:: python
+
+  In [1]: from crossref.restful import Depositor
+
+  In [2]: request_xml = open('tests/fixtures/deposit_xml_sample.xml', 'r').read()
+
+  In [3]: depositor = Depositor('your prefix', 'your crossref user', 'your crossref password')
+
+  In [4]: response = depositor.register_doi('testing_20171011', request_xml)
+
+  In [5]: response.status_code
+  Out[5]: 200
+
+  In [6]: response.text
+  Out[6]: '\n\n\n\n<html>\n<head><title>SUCCESS</title>\n</head>\n<body>\n<h2>SUCCESS</h2>\n<p>Your batch submission was successfully received.</p>\n</body>\n</html>\n'
+
+  In [7]: response = depositor.request_doi_status_by_filename('testing_20171011.xml')
+
+  In [8]: response.text
+  Out[8]: '<?xml version="1.0" encoding="UTF-8"?>\n<doi_batch_diagnostic status="queued">\r\n  <submission_id>1415653976</submission_id>\r\n  <batch_id />\r\n</doi_batch_diagnostic>'
+
+  In [9]: response = depositor.request_doi_status_by_filename('testing_20171011.xml')
+
+  In [10]: response.text
+  Out[10]: '<?xml version="1.0" encoding="UTF-8"?>\n<doi_batch_diagnostic status="queued">\r\n  <submission_id>1415653976</submission_id>\r\n  <batch_id />\r\n</doi_batch_diagnostic>'
+
+  In [11]: response = depositor.request_doi_status_by_filename('testing_20171011.xml', data_type='result')
+
+  In [12]: response.text
+  Out[12]: '<?xml version="1.0" encoding="UTF-8"?>\n<doi_batch_diagnostic status="queued">\r\n  <submission_id>1415653976</submission_id>\r\n  <batch_id />\r\n</doi_batch_diagnostic>'
+
+  In [13]: response = depositor.request_doi_status_by_filename('testing_20171011.xml', data_type='contents')
+
+  In [14]: response.text
+  Out[14]: '<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<doi_batch xmlns:jats="http://www.ncbi.nlm.nih.gov/JATS1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.crossref.org/schema/4.4.0" version="4.4.0" xsi:schemaLocation="http://www.crossref.org/schema/4.4.0 http://www.crossref.org/schemas/crossref4.4.0.xsd">\n  <head>\n    <doi_batch_id>c5473e12dc8e4f36a40f76f8eae15280</doi_batch_id>\n    <timestamp>20171009132847</timestamp>\n    <depositor>\n      <depositor_name>SciELO</depositor_name>\n      <email_address>crossref@scielo.org</email_address>\n    </depositor>\n    <registrant>SciELO</registrant>\n  </head>\n  <body>\n    <journal>\n      <journal_metadata>\n        <full_title>Revista Brasileira de Ciência Avícola</full_title>\n        <abbrev_title>Rev. Bras. Cienc. Avic.</abbrev_title>\n        <issn media_type="electronic">1516-635X</issn>\n      </journal_metadata>\n      <journal_issue>\n        <publication_date media_type="print">\n          <month>09</month>\n          <year>2017</year>\n        </publication_date>\n        <journal_volume>\n          <volume>19</volume>\n        </journal_volume>\n        <issue>3</issue>\n      </journal_issue>\n      <journal_article publication_type="full_text" reference_distribution_opts="any">\n        <titles>\n          <title>Climatic Variation: Effects on Stress Levels, Feed Intake, and Bodyweight of Broilers</title>\n        </titles>\n        <contributors>\n          <person_name contributor_role="author" sequence="first">\n            <given_name>R</given_name>\n            <surname>Osti</surname>\n            <affiliation>Huazhong Agricultural University,  China</affiliation>\n          </person_name>\n          <person_name contributor_role="author" sequence="additional">\n            <given_name>D</given_name>\n            <surname>Bhattarai</surname>\n            <affiliation>Huazhong Agricultural University,  China</affiliation>\n          </person_name>\n          <person_name contributor_role="author" sequence="additional">\n            <given_name>D</given_name>\n            <surname>Zhou</surname>\n            <affiliation>Huazhong Agricultural University,  China</affiliation>\n          </person_name>\n        </contributors>\n        <publication_date media_type="print">\n          <month>09</month>\n          <year>2017</year>\n        </publication_date>\n        <pages>\n          <first_page>489</first_page>\n          <last_page>496</last_page>\n        </pages>\n        <publisher_item>\n          <identifier id_type="pii">S1516-635X2017000300489</identifier>\n        </publisher_item>\n</doi_batch>'
+
+  In [15]: response = depositor.request_doi_status_by_filename('testing_20171011.xml', data_type='contents')
+
+  In [16]: response.text
+  Out[16]:
+    <doi_batch_diagnostic status="completed" sp="ds4.crossref.org">
+       <submission_id>1415649102</submission_id>
+       <batch_id>9112073c7f474394adc01b82e27ea2a8</batch_id>
+       <record_diagnostic status="Success">
+          <doi>10.1590/0037-8682-0216-2016</doi>
+          <msg>Successfully updated</msg>
+          <citations_diagnostic>
+             <citation key="ref1" status="resolved_reference">10.1590/0037-8682-0284-2014</citation>
+             <citation key="ref2" status="resolved_reference">10.1371/journal.pone.0090237</citation>
+             <citation key="ref3" status="resolved_reference">10.1093/infdis/172.6.1561</citation>
+             <citation key="ref4" status="resolved_reference">10.1016/j.ijpara.2011.01.005</citation>
+             <citation key="ref5" status="resolved_reference">10.1016/j.rvsc.2013.01.006</citation>
+             <citation key="ref6" status="resolved_reference">10.1093/trstmh/tru113</citation>
+             <citation key="ref7" status="resolved_reference">10.1590/0074-02760150459</citation>
+          </citations_diagnostic>
+       </record_diagnostic>
+       <batch_data>
+          <record_count>1</record_count>
+          <success_count>1</success_count>
+          <warning_count>0</warning_count>
+          <failure_count>0</failure_count>
+       </batch_data>
+    </doi_batch_diagnostic>
+
+Explaining the code
+```````````````````
+
+Line 1: Importing the Depositor Class
+Line 2: Loading a valid XML for deposit
+Line 3: Creating an instance of Depositor. You should use you crossref credentials at this point. If you wana be polite, you should also give an etiquette object at this momment.
+
+.. block-code:: python
+
+  etiquette = Etiquette('My Project Name', 'My Project version', 'My Project URL', 'My contact email')
+  Depositor('your prefix', 'your crossref user', 'your crossref password', etiquette)
+
+Line 4: Requesting the DOI (Id do not means you DOI was registered, it is just a DOI Request)
+Line 5: Checking the DOI request response.
+Line 6: Printing the DOI request response body.
+Line 7: Requesting the DOI registering status.
+Line 8: Checking the DOI registering status, reading the body of the response. You should parse this XML to have the current status of the DOI registering request. You should do this util have an success or error status retrieved.
+Line 9-12: Rechecking the request status. It is still in queue. You can also set the response type between ['result', 'contents'], where result will retrieve the status of the DOI registering process, and contents will retrieve the submitted XML content while requesting the DOI.
+Line 13-14: Checking the content submitted passing the attribute data_type='contents'.
+
+
+
