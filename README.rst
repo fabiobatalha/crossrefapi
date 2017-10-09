@@ -472,7 +472,7 @@ This library implements the deposit operation "doMDUpload", it means you are abl
 
 To do that, you must have an active publisher account with crossref.org.
 
-# First of all, you need a valid XML following the crossref DTD.
+#. First of all, you need a valid XML following the crossref DTD.
 
 .. code-block:: xml
 
@@ -583,7 +583,7 @@ To do that, you must have an active publisher account with crossref.org.
 
 #. Second! Using the library
 
-  .. code-block:: python
+.. code-block:: python
 
   In [1]: from crossref.restful import Depositor
 
