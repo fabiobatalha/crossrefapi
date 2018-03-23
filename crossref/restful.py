@@ -1730,12 +1730,18 @@ class Journals(Endpoint):
 
 class Depositor(object):
 
-    def __init__(self, prefix, api_user, api_key, etiquette=None):
+    def __init__(self, prefix, api_user, api_key, etiquette=None,
+                 use_test_server=False):
         self.do_http_request = HTTPRequest(throttle=False).do_http_request
         self.etiquette = etiquette or Etiquette()
         self.prefix = prefix
         self.api_user = api_user
         self.api_key = api_key
+        self.use_test_server = use_test_server
+
+    def get_endpoint(self, verb):
+        subdomain = 'test' if self.use_test_server else 'doi'
+        return "https://{}.crossref.org/servlet/{}".format(subdomain, verb)
 
     def register_doi(self, submission_id, request_xml):
         """
@@ -1749,7 +1755,7 @@ class Depositor(object):
         compliance with the Crossref Submission Schema.
         """
 
-        endpoint = "https://doi.crossref.org/servlet/deposit"
+        endpoint = self.get_endpoint('deposit')
 
         files = {
             'mdFile': ('%s.xml' % submission_id, request_xml)
@@ -1783,7 +1789,7 @@ class Depositor(object):
             result - retrieve a JSON with the status of the submission
         """
 
-        endpoint = "https://doi.crossref.org/servlet/submissionDownload"
+        endpoint = self.get_endpoint('submissionDownload')
 
         params = {
             'usr': self.api_user,
@@ -1813,7 +1819,7 @@ class Depositor(object):
             result - retrieve a XML with the status of the submission
         """
 
-        endpoint = "https://doi.crossref.org/servlet/submissionDownload"
+        endpoint = self.get_endpoint('submissionDownload')
 
         params = {
             'usr': self.api_user,
