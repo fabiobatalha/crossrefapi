@@ -58,7 +58,7 @@ Query
 
   In [2]: works = Works()
 
-  In [3]: w1 = works.query(title='zika', author='johannes', publisher_name='Wiley-Blackwell')
+  In [3]: w1 = works.query(bibliographic='zika', author='johannes', publisher_name='Wiley-Blackwell')
 
   In [4]: for item in w1:
      ...:     print(item['title'])

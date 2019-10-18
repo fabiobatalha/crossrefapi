@@ -367,7 +367,6 @@ class Works(Endpoint):
         'funder_name',
         'publisher_location',
         'publisher_name',
-        'title',
         'translator'
     )
 
