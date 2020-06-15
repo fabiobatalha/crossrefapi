@@ -68,10 +68,9 @@ class HTTPRequest(object):
             action = requests.get
 
         if custom_header:
-            headers = {'user-agent': custom_header}
+            headers = custom_header
         else:
             headers = {'user-agent': str(Etiquette())}
-
         if method == 'post':
             result = action(endpoint, data=data, files=files, timeout=timeout, headers=headers)
         else:
@@ -114,9 +113,13 @@ class Endpoint:
 
     CURSOR_AS_ITER_METHOD = False
 
-    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True):
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None):
         self.do_http_request = HTTPRequest(throttle=throttle).do_http_request
         self.etiquette = etiquette or Etiquette()
+        self.custom_header = {'user-agent': str(self.etiquette)}
+        self.crossref_plus_token = crossref_plus_token
+        if crossref_plus_token:
+            self.custom_header["Crossref-Plus-API-Token"] = self.crossref_plus_token
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
         self.context = context or ''
@@ -130,7 +133,7 @@ class Endpoint:
             'get',
             request_url,
             only_headers=True,
-            custom_header=str(self.etiquette),
+            custom_header=self.custom_header,
             throttle=False
         )
 
@@ -168,7 +171,7 @@ class Endpoint:
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         ).json()
 
         return result['message-version']
@@ -209,7 +212,7 @@ class Endpoint:
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         ).json()
 
         return int(result['message']['total-results'])
@@ -247,7 +250,7 @@ class Endpoint:
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = {}
 
-        return iter(self.__class__(request_url, request_params, context, self.etiquette))
+        return iter(self.__class__(request_url, request_params, context, etiquette=self.etiquette, crossref_plus_token=self.crossref_plus_token))
 
     def __iter__(self):
         request_url = str(self.request_url)
@@ -258,7 +261,7 @@ class Endpoint:
                 'get',
                 self.request_url,
                 data=request_params,
-                custom_header=str(self.etiquette)
+                custom_header=self.custom_header
             )
 
             if result.status_code == 404:
@@ -280,7 +283,7 @@ class Endpoint:
                     'get',
                     request_url,
                     data=request_params,
-                    custom_header=str(self.etiquette)
+                    custom_header=self.custom_header
                 )
 
                 if result.status_code == 404:
@@ -304,7 +307,7 @@ class Endpoint:
                     'get',
                     request_url,
                     data=request_params,
-                    custom_header=str(self.etiquette)
+                    custom_header=self.custom_header
                 )
 
                 if result.status_code == 404:
@@ -804,7 +807,7 @@ class Works(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         ).json()
 
         return result['message']['facets']
@@ -942,17 +945,15 @@ class Works(Endpoint):
             '/'.join([self.ENDPOINT, doi])
         )
         request_params = {}
-
         result = self.do_http_request(
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
             return
-
         result = result.json()
 
         return result['message'] if only_message is True else result
@@ -981,7 +982,7 @@ class Works(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1022,7 +1023,7 @@ class Works(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1146,7 +1147,7 @@ class Funders(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1187,7 +1188,7 @@ class Funders(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1347,7 +1348,7 @@ class Members(Endpoint):
             'deposits-orcids-current': False, 'deposits-licenses-backfile': False,
             'deposits-affiliations-backfile': True, 'deposits-update-policies-backfile': False,
             'deposits-resource-links-current': False, 'deposits-affiliations-current': True},
-            'names': ['Hogrefe Publishing Group'], 'breakdowns': {'dois-by-issued-year': 
+            'names': ['Hogrefe Publishing Group'], 'breakdowns': {'dois-by-issued-year':
             [[2003, 2329], [2004, 2264], [2002, 2211], [2005, 2204], [2006, 2158], [2007, 2121], [2016, 1954],
             [2008, 1884], [2015, 1838], [2012, 1827], [2013, 1805], [2014, 1796], [2009, 1760], [2010, 1718],
             [2011, 1681], [2001, 1479], [2000, 1477], [1999, 1267], [2017, 767], [1997, 164], [1996, 140],
@@ -1365,7 +1366,7 @@ class Members(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1406,7 +1407,7 @@ class Members(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1452,7 +1453,7 @@ class Types(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1488,7 +1489,7 @@ class Types(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1530,7 +1531,7 @@ class Types(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1580,7 +1581,7 @@ class Prefixes(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1664,7 +1665,7 @@ class Journals(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1706,7 +1707,7 @@ class Journals(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         if result.status_code == 404:
@@ -1733,6 +1734,7 @@ class Depositor(object):
                  use_test_server=False):
         self.do_http_request = HTTPRequest(throttle=False).do_http_request
         self.etiquette = etiquette or Etiquette()
+        self.custom_header = {'user-agent': str(self.etiquette)}
         self.prefix = prefix
         self.api_user = api_user
         self.api_key = api_key
@@ -1772,7 +1774,7 @@ class Depositor(object):
             data=params,
             files=files,
             timeout=10,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         return result
@@ -1802,7 +1804,7 @@ class Depositor(object):
             endpoint,
             data=params,
             timeout=10,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         return result
@@ -1832,7 +1834,7 @@ class Depositor(object):
             endpoint,
             data=params,
             timeout=10,
-            custom_header=str(self.etiquette)
+            custom_header=self.custom_header
         )
 
         return result
