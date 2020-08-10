@@ -339,7 +339,7 @@ This method returns the Crossref API version.
 
 Count
 `````
-This method returns the total of itens a query result should retrive. This method will not
+This method returns the total of items a query result should retrive. This method will not
 iterate and retrieve through the API documents. This method will fetch 0 documents
 and retrieve the value of **total-result** attribute.
 
