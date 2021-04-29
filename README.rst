@@ -11,7 +11,9 @@ Library with functions to iterate through the Crossref API.
 How to Install
 --------------
 
-pip install crossrefapi
+.. code-block:: shell
+
+  pip install crossrefapi
 
 ----------
 How to Use
