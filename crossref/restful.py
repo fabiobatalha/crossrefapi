@@ -113,7 +113,7 @@ class Endpoint:
 
     CURSOR_AS_ITER_METHOD = False
 
-    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None):
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
         self.do_http_request = HTTPRequest(throttle=throttle).do_http_request
         self.etiquette = etiquette or Etiquette()
         self.custom_header = {'user-agent': str(self.etiquette)}
@@ -123,6 +123,7 @@ class Endpoint:
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
         self.request_params = request_params or dict()
         self.context = context or ''
+        self.timeout = timeout
 
     @property
     def _rate_limits(self):
@@ -134,6 +135,7 @@ class Endpoint:
             request_url,
             only_headers=True,
             custom_header=self.custom_header,
+            timeout=self.timeout,
             throttle=False
         )
 
@@ -171,7 +173,8 @@ class Endpoint:
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         ).json()
 
         return result['message-version']
@@ -212,7 +215,8 @@ class Endpoint:
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         ).json()
 
         return int(result['message']['total-results'])
@@ -250,7 +254,7 @@ class Endpoint:
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = {}
 
-        return iter(self.__class__(request_url, request_params, context, etiquette=self.etiquette, crossref_plus_token=self.crossref_plus_token))
+        return iter(self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, crossref_plus_token=self.crossref_plus_token, timeout=self.timeout))
 
     def __iter__(self):
         request_url = str(self.request_url)
@@ -261,7 +265,8 @@ class Endpoint:
                 'get',
                 self.request_url,
                 data=request_params,
-                custom_header=self.custom_header
+                custom_header=self.custom_header,
+                timeout=self.timeout
             )
 
             if result.status_code == 404:
@@ -283,7 +288,8 @@ class Endpoint:
                     'get',
                     request_url,
                     data=request_params,
-                    custom_header=self.custom_header
+                    custom_header=self.custom_header,
+                    timeout=self.timeout
                 )
 
                 if result.status_code == 404:
@@ -307,7 +313,8 @@ class Endpoint:
                     'get',
                     request_url,
                     data=request_params,
-                    custom_header=self.custom_header
+                    custom_header=self.custom_header,
+                    timeout=self.timeout
                 )
 
                 if result.status_code == 404:
@@ -588,7 +595,7 @@ class Works(Endpoint):
 
         request_params['order'] = order
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def select(self, *args):
         """
@@ -682,7 +689,7 @@ class Works(Endpoint):
             sorted([i for i in set(request_params.get('select', '').split(',') + select_args) if i])
         )
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def sort(self, sort='score'):
         """
@@ -738,7 +745,7 @@ class Works(Endpoint):
 
         request_params['sort'] = sort
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def filter(self, **kwargs):
         """
@@ -786,7 +793,7 @@ class Works(Endpoint):
             else:
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def facet(self, facet_name, facet_count=100):
         context = str(self.context)
@@ -807,7 +814,8 @@ class Works(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         ).json()
 
         return result['message']['facets']
@@ -898,7 +906,7 @@ class Works(Endpoint):
 
         request_params['sample'] = sample_size
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def doi(self, doi, only_message=True):
         """
@@ -949,7 +957,8 @@ class Works(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -982,7 +991,8 @@ class Works(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1023,7 +1033,8 @@ class Works(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1069,7 +1080,7 @@ class Funders(Endpoint):
         if args:
             request_params['query'] = ' '.join([str(i) for i in args])
 
-        return self.__class__(request_url, request_params, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, etiquette=self.etiquette, timeout=self.timeout)
 
     def filter(self, **kwargs):
         """
@@ -1118,7 +1129,7 @@ class Funders(Endpoint):
             else:
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def funder(self, funder_id, only_message=True):
         """funder
@@ -1147,7 +1158,8 @@ class Funders(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1188,7 +1200,8 @@ class Funders(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1266,7 +1279,7 @@ class Members(Endpoint):
         if args:
             request_params['query'] = ' '.join([str(i) for i in args])
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def filter(self, **kwargs):
         """
@@ -1314,7 +1327,7 @@ class Members(Endpoint):
             else:
                 request_params['filter'] += ',' + decoded_fltr + ':' + str(value)
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def member(self, member_id, only_message=True):
         """
@@ -1366,7 +1379,8 @@ class Members(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1407,7 +1421,8 @@ class Members(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1453,7 +1468,8 @@ class Types(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1489,7 +1505,8 @@ class Types(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1531,7 +1548,8 @@ class Types(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1581,7 +1599,8 @@ class Prefixes(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1637,7 +1656,7 @@ class Journals(Endpoint):
         if args:
             request_params['query'] = ' '.join([str(i) for i in args])
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context, etiquette=self.etiquette, timeout=self.timeout)
 
     def journal(self, issn, only_message=True):
         """
@@ -1665,7 +1684,8 @@ class Journals(Endpoint):
             'get',
             request_url,
             data=request_params,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1707,7 +1727,8 @@ class Journals(Endpoint):
             request_url,
             data=request_params,
             only_headers=True,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         if result.status_code == 404:
@@ -1773,8 +1794,8 @@ class Depositor(object):
             endpoint,
             data=params,
             files=files,
-            timeout=10,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         return result
@@ -1803,8 +1824,8 @@ class Depositor(object):
             'get',
             endpoint,
             data=params,
-            timeout=10,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         return result
@@ -1833,8 +1854,8 @@ class Depositor(object):
             'get',
             endpoint,
             data=params,
-            timeout=10,
-            custom_header=self.custom_header
+            custom_header=self.custom_header,
+            timeout=self.timeout
         )
 
         return result
