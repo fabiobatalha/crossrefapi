@@ -86,36 +86,36 @@ class HTTPRequestTest(unittest.TestCase):
 
     def test_default_rate_limits(self):
 
-        expected = {'X-Rate-Limit-Interval': 1, 'X-Rate-Limit-Limit': 50}
+        expected = {'x-rate-limit-interval': 1, 'x-rate-limit-limit': 50}
 
         self.assertEqual(self.httprequest.rate_limits, expected)
 
     def test_update_rate_limits_seconds(self):
 
-        headers = {'X-Rate-Limit-Interval': '2s', 'X-Rate-Limit-Limit': 50}
+        headers = {'x-rate-limit-interval': '2s', 'x-rate-limit-limit': 50}
 
         self.httprequest._update_rate_limits(headers)
 
-        expected = {'X-Rate-Limit-Interval': 2, 'X-Rate-Limit-Limit': 50}
+        expected = {'x-rate-limit-interval': 2, 'x-rate-limit-limit': 50}
 
         self.assertEqual(self.httprequest.rate_limits, expected)
 
     def test_update_rate_limits_minutes(self):
 
-        headers = {'X-Rate-Limit-Interval': '2m', 'X-Rate-Limit-Limit': 50}
+        headers = {'x-rate-limit-interval': '2m', 'x-rate-limit-limit': 50}
 
         self.httprequest._update_rate_limits(headers)
 
-        expected = {'X-Rate-Limit-Interval': 120, 'X-Rate-Limit-Limit': 50}
+        expected = {'x-rate-limit-interval': 120, 'x-rate-limit-limit': 50}
 
         self.assertEqual(self.httprequest.rate_limits, expected)
 
     def test_update_rate_limits_hours(self):
 
-        headers = {'X-Rate-Limit-Interval': '2h', 'X-Rate-Limit-Limit': 50}
+        headers = {'x-rate-limit-interval': '2h', 'x-rate-limit-limit': 50}
 
         self.httprequest._update_rate_limits(headers)
 
-        expected = {'X-Rate-Limit-Interval': 7200, 'X-Rate-Limit-Limit': 50}
+        expected = {'x-rate-limit-interval': 7200, 'x-rate-limit-limit': 50}
 
         self.assertEqual(self.httprequest.rate_limits, expected)
