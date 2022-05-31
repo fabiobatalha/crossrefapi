@@ -364,7 +364,7 @@ class Endpoint:
                 for item in result["message"]["items"]:
                     yield item
 
-                request_params["offset"] += LIMIT + 1
+                request_params["offset"] += LIMIT
 
                 if request_params["offset"] >= MAXOFFSET:
                     raise MaxOffsetError("Offset exceded the max offset of %d", MAXOFFSET)
