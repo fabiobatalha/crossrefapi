@@ -924,7 +924,8 @@ class Works(Endpoint):
                 )
             request_params["query.%s" % field.replace("_", "-")] = value
 
-        return self.__class__(request_url, request_params, context, self.etiquette)
+        return self.__class__(request_url=request_url, request_params=request_params, context=context,
+                              etiquette=self.etiquette, timeout=self.timeout)
 
     def sample(self, sample_size=20):
         """
