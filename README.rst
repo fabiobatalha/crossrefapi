@@ -323,7 +323,7 @@ Exemplifying the use of API Library to retrieve data from Journals endpoint.
 Base Methods
 ------------
 
-The base methods could be used compounded with with query, filter, sort, order and facet methods.
+The base methods could be used along with the query, filter, sort, order and facet methods.
 
 Version
 ```````
@@ -341,8 +341,8 @@ This method returns the Crossref API version.
 
 Count
 `````
-This method returns the total of items a query result should retrive. This method will not
-iterate and retrieve through the API documents. This method will fetch 0 documents
+This method returns the total number of items a query result should retrieve. This method will not
+iterate through and retrieve the API documents. This method will fetch 0 documents
 and retrieve the value of **total-result** attribute.
 
 .. code-block:: python
