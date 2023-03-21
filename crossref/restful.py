@@ -306,7 +306,7 @@ class Endpoint:
             )
 
             if result.status_code == 404:
-                raise StopIteration()
+                return
 
             result = result.json()
 
@@ -329,7 +329,7 @@ class Endpoint:
                 )
 
                 if result.status_code == 404:
-                    raise StopIteration()
+                    return
 
                 result = result.json()
 
@@ -354,7 +354,7 @@ class Endpoint:
                 )
 
                 if result.status_code == 404:
-                    raise StopIteration()
+                    return
 
                 result = result.json()
 
@@ -1580,7 +1580,7 @@ class Types(Endpoint):
         )
 
         if result.status_code == 404:
-            raise StopIteration()
+            return
 
         result = result.json()
 
