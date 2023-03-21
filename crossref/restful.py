@@ -1,9 +1,11 @@
 # coding: utf-8
 
 import requests
+import requests_cache
 from time import sleep
 
 from crossref import validators, VERSION
+
 
 LIMIT = 100
 MAXOFFSET = 10000
@@ -134,6 +136,7 @@ class Endpoint:
 
     def __init__(
         self,
+        backend=None,
         request_url=None,
         request_params=None,
         context=None,
@@ -141,7 +144,10 @@ class Endpoint:
         throttle=True,
         crossref_plus_token=None,
         timeout=30,
+        
     ):
+        if backend:
+            requests_cache.install_cache(cache_name='crossref_cache', backend=backend)
         self.do_http_request = HTTPRequest(throttle=throttle).do_http_request
         self.etiquette = etiquette or Etiquette()
         self.custom_header = {"user-agent": str(self.etiquette)}
@@ -575,6 +581,10 @@ class Works(Endpoint):
         "update-type": None,
     }
 
+    def __init__(self, backend=None, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
+        super().__init__(backend, request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout)
+        self.backend = backend
+
     def order(self, order="asc"):
         """
         This method retrieve an iterable object that implements the method
@@ -628,6 +638,7 @@ class Works(Endpoint):
         request_params["order"] = order
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
@@ -726,6 +737,7 @@ class Works(Endpoint):
         )
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
@@ -786,6 +798,7 @@ class Works(Endpoint):
         request_params["sort"] = sort
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
@@ -838,6 +851,7 @@ class Works(Endpoint):
                 request_params["filter"] += "," + decoded_fltr + ":" + str(value)
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
@@ -924,7 +938,8 @@ class Works(Endpoint):
                 )
             request_params["query.%s" % field.replace("_", "-")] = value
 
-        return self.__class__(request_url=request_url,
+        return self.__class__(backend=self.backend,
+                              request_url=request_url,
                               request_params=request_params,
                               context=context,
                               etiquette=self.etiquette,
@@ -968,6 +983,7 @@ class Works(Endpoint):
         request_params["sample"] = sample_size
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
@@ -1114,6 +1130,10 @@ class Funders(Endpoint):
         "location": None,
     }
 
+    def __init__(self, backend=None, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
+        super().__init__(backend, request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout)
+        self.backend = backend
+
     def query(self, *args):
         """
         This method retrieve an iterable object that implements the method
@@ -1142,6 +1162,7 @@ class Funders(Endpoint):
             request_params["query"] = " ".join([str(i) for i in args])
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             etiquette=self.etiquette,
@@ -1194,6 +1215,7 @@ class Funders(Endpoint):
                 request_params["filter"] += "," + decoded_fltr + ":" + str(value)
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
@@ -1300,6 +1322,10 @@ class Members(Endpoint):
         "current-doi-count": validators.is_integer,
     }
 
+    def __init__(self, backend=None, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
+        super().__init__(backend, request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout)
+        self.backend = backend
+
     def query(self, *args):
         """
         This method retrieve an iterable object that implements the method
@@ -1346,6 +1372,7 @@ class Members(Endpoint):
             request_params["query"] = " ".join([str(i) for i in args])
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
@@ -1398,6 +1425,7 @@ class Members(Endpoint):
                 request_params["filter"] += "," + decoded_fltr + ":" + str(value)
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
@@ -1694,6 +1722,10 @@ class Journals(Endpoint):
 
     ENDPOINT = "journals"
 
+    def __init__(self, backend=None, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
+        super().__init__(backend, request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout)
+        self.backend=backend
+
     def query(self, *args):
         """
         This method retrieve an iterable object that implements the method
@@ -1723,6 +1755,7 @@ class Journals(Endpoint):
             request_params["query"] = " ".join([str(i) for i in args])
 
         return self.__class__(
+            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
