@@ -822,7 +822,7 @@ class Works(Endpoint):
         request_params = dict(self.request_params)
 
         for fltr, value in kwargs.items():
-            decoded_fltr = fltr.replace("__", ".").replace("_", "-")
+            decoded_fltr = fltr.replace("_", ".").replace("_", "-")
             if decoded_fltr not in self.FILTER_VALIDATOR.keys():
                 raise UrlSyntaxError(
                     "Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s"
