@@ -802,7 +802,8 @@ class Works(Endpoint):
         This method can be used compounded and recursively with query, filter,
         order, sort and facet methods.
 
-        kwargs: valid FILTER_VALIDATOR arguments.
+        kwargs: valid FILTER_VALIDATOR arguments. Replace `.` with `__` and 
+        `-` with `_` when using parameters.
 
         return: iterable object of Works metadata
 
