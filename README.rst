@@ -55,7 +55,7 @@ Sample
 Query
 `````
 
-See valid parameters in `Works.FIELDS_QUERY`
+See valid parameters in :code:`Works.FIELDS_QUERY`
 
 .. code-block:: python
 
@@ -126,7 +126,7 @@ Doi
 Filter
 ``````
 
-See valid parameters in `Works.FILTER_VALIDATOR`. Replace `.` with `__` and `-` with `_` when using parameters.
+See valid parameters in :code:`Works.FILTER_VALIDATOR`. Replace :code:`.` with :code:`__` and :code:`-` with :code:`_` when using parameters.
 
 .. code-block:: python
 
@@ -146,7 +146,7 @@ See valid parameters in `Works.FILTER_VALIDATOR`. Replace `.` with `__` and `-` 
 Select
 ``````
 
-See valid parameters in `Works.FIELDS_SELECT`
+See valid parameters in :code:`Works.FIELDS_SELECT`
 
 .. code-block:: python
 
