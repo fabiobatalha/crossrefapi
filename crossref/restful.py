@@ -26,8 +26,6 @@ class UrlSyntaxError(CrossrefAPIError, ValueError):
 
 class HTTPRequest(object):
 
-    THROTTLING_TUNNING_TIME = 600
-
     def __init__(self, throttle=True):
         self.throttle = throttle
         self.rate_limits = {"x-rate-limit-limit": 50, "x-rate-limit-interval": 1}
