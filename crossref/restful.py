@@ -581,8 +581,8 @@ class Works(Endpoint):
         "update-type": None,
     }
 
-    def __init__(self, backend=None, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
-        super().__init__(backend, request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout)
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30, backend=None):
+        super().__init__(request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout, backend)
         self.backend = backend
 
     def order(self, order="asc"):
@@ -638,12 +638,12 @@ class Works(Endpoint):
         request_params["order"] = order
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def select(self, *args):
@@ -737,12 +737,12 @@ class Works(Endpoint):
         )
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def sort(self, sort="score"):
@@ -798,12 +798,12 @@ class Works(Endpoint):
         request_params["sort"] = sort
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def filter(self, **kwargs):
@@ -851,12 +851,12 @@ class Works(Endpoint):
                 request_params["filter"] += "," + decoded_fltr + ":" + str(value)
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def facet(self, facet_name, facet_count=100):
@@ -938,12 +938,12 @@ class Works(Endpoint):
                 )
             request_params["query.%s" % field.replace("_", "-")] = value
 
-        return self.__class__(backend=self.backend,
-                              request_url=request_url,
+        return self.__class__(request_url=request_url,
                               request_params=request_params,
                               context=context,
                               etiquette=self.etiquette,
-                              timeout=self.timeout)
+                              timeout=self.timeout,
+                              backend=self.backend,)
 
     def sample(self, sample_size=20):
         """
@@ -983,12 +983,12 @@ class Works(Endpoint):
         request_params["sample"] = sample_size
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def doi(self, doi, only_message=True):
@@ -1130,8 +1130,8 @@ class Funders(Endpoint):
         "location": None,
     }
 
-    def __init__(self, backend=None, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
-        super().__init__(backend, request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout)
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30, backend=None,):
+        super().__init__(request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout, backend,)
         self.backend = backend
 
     def query(self, *args):
@@ -1162,11 +1162,11 @@ class Funders(Endpoint):
             request_params["query"] = " ".join([str(i) for i in args])
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def filter(self, **kwargs):
@@ -1215,12 +1215,12 @@ class Funders(Endpoint):
                 request_params["filter"] += "," + decoded_fltr + ":" + str(value)
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def funder(self, funder_id, only_message=True):
@@ -1322,8 +1322,8 @@ class Members(Endpoint):
         "current-doi-count": validators.is_integer,
     }
 
-    def __init__(self, backend=None, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
-        super().__init__(backend, request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout)
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30, backend=None,):
+        super().__init__(request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout, backend)
         self.backend = backend
 
     def query(self, *args):
@@ -1372,12 +1372,12 @@ class Members(Endpoint):
             request_params["query"] = " ".join([str(i) for i in args])
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def filter(self, **kwargs):
@@ -1425,12 +1425,12 @@ class Members(Endpoint):
                 request_params["filter"] += "," + decoded_fltr + ":" + str(value)
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def member(self, member_id, only_message=True):
@@ -1722,8 +1722,8 @@ class Journals(Endpoint):
 
     ENDPOINT = "journals"
 
-    def __init__(self, backend=None, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30):
-        super().__init__(backend, request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout)
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30, backend=None):
+        super().__init__(request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout, backend)
         self.backend=backend
 
     def query(self, *args):
@@ -1755,12 +1755,12 @@ class Journals(Endpoint):
             request_params["query"] = " ".join([str(i) for i in args])
 
         return self.__class__(
-            backend=self.backend,
             request_url=request_url,
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def journal(self, issn, only_message=True):
