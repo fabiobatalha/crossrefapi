@@ -54,6 +54,9 @@ Sample
 
 Query
 `````
+
+See valid parameters in :code:`Works.FIELDS_QUERY`
+
 .. code-block:: python
 
   In [1]: from crossref.restful import Works
@@ -120,8 +123,30 @@ Doi
    'type': 'journal-article',
    'volume': '32'}
 
+Filter
+``````
+
+See valid parameters in :code:`Works.FILTER_VALIDATOR`. Replace :code:`.` with :code:`__` and :code:`-` with :code:`_` when using parameters.
+
+.. code-block:: python
+
+  In [1] from cross.restful import Works
+
+  In [2]: works = Works()
+  
+  In [3]: for i in w.filter(license__url='https://creativecommons.org/licenses/by', from_pub_date='2016').sample(5).select('title'):
+     ...: print(i)
+     ...:
+  {'title': ['Vers une économie circulaire... de proximité ? Une spatialité à géométrie variable']}
+  {'title': ['The stakeholders of the Olympic System']}
+  {'title': ["Un cas de compensation écologique dans le secteur minier : la réserve forestière Dékpa (Côte d'Ivoire) au secours des forêts et des populations locales"]}
+  {'title': ['A simple extension of FFT-based methods to strain gradient loadings - Application to the homogenization of beams and plates with linear and non-linear behaviors']}
+  {'title': ['Gestion des déchets ménagers dans la ville de Kinshasa : Enquête sur la perception des habitants et propositions']}
+
 Select
 ``````
+
+See valid parameters in :code:`Works.FIELDS_SELECT`
 
 .. code-block:: python
 
@@ -319,7 +344,6 @@ Exemplifying the use of API Library to retrieve data from Journals endpoint.
   In [10]: journals.works('0102-311X').query('zika').query(author='Diniz').count()
   Out[10]: 1
 
-
 Base Methods
 ------------
 
@@ -463,9 +487,7 @@ to setup an Etiquette object to be used in the http requests.
     {'DOI': '10.1016/s0021-9290(17)30138-0'}
     {'DOI': '10.1109/ancs.2011.11'}
 
-
 Voilá!!! The requests made for the Crossref API, were made setting the user-agent as: 'My Project Name/0.2alpha (https://myalphaproject.com; mailto:anonymous@myalphaproject.com) BasedOn: CrossrefAPI/1.1.0'
-
 
 Depositing Metadata to Crossref
 -------------------------------
