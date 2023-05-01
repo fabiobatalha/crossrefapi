@@ -134,7 +134,7 @@ See valid parameters in :code:`Works.FILTER_VALIDATOR`. Replace :code:`.` with :
 
   In [2]: works = Works()
   
-  In [3]: for i in w.filter(license__url='https://creativecommons.org/licenses/by', from_pub_date='2016').sample(5).select('title'):
+  In [3]: for i in works.filter(license__url='https://creativecommons.org/licenses/by', from_pub_date='2016').sample(5).select('title'):
      ...: print(i)
      ...:
   {'title': ['Vers une économie circulaire... de proximité ? Une spatialité à géométrie variable']}
