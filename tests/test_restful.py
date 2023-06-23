@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import unittest
+import pathlib as pl
 
 from crossref import restful
 from crossref import VERSION
@@ -67,6 +68,14 @@ class RestfulTest(unittest.TestCase):
 
         self.assertEqual(result, 'https://api.crossref.org/works?filter=type%3Ajournal-article&sample=5')
 
+    def test_work_with_backend(self):
+        _ = restful.Works(backend='filesystem')
+        path = 'crossref_cache'
+
+        if not pl.Path(path).resolve().is_dir():
+            raise AssertionError("File does not exist: %s" % str(path))
+
+        
     def test_members_filters(self):
         result = restful.Members(etiquette=self.etiquette).filter(has_public_references="true").url
 

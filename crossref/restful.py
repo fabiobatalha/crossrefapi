@@ -1,9 +1,11 @@
 # coding: utf-8
 
 import requests
+import requests_cache
 from time import sleep
 
 from crossref import validators, VERSION
+
 
 LIMIT = 100
 MAXOFFSET = 10000
@@ -132,6 +134,7 @@ class Endpoint:
 
     def __init__(
         self,
+        backend=None,
         request_url=None,
         request_params=None,
         context=None,
@@ -139,7 +142,10 @@ class Endpoint:
         throttle=True,
         crossref_plus_token=None,
         timeout=30,
+        
     ):
+        if backend:
+            requests_cache.install_cache(cache_name='crossref_cache', backend=backend)
         self.do_http_request = HTTPRequest(throttle=throttle).do_http_request
         self.etiquette = etiquette or Etiquette()
         self.custom_header = {"user-agent": str(self.etiquette)}
@@ -573,6 +579,10 @@ class Works(Endpoint):
         "update-type": None,
     }
 
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30, backend=None):
+        super().__init__(request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout, backend)
+        self.backend = backend
+
     def order(self, order="asc"):
         """
         This method retrieve an iterable object that implements the method
@@ -631,6 +641,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def select(self, *args):
@@ -729,6 +740,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def sort(self, sort="score"):
@@ -789,6 +801,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def filter(self, **kwargs):
@@ -842,6 +855,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def facet(self, facet_name, facet_count=100):
@@ -927,7 +941,8 @@ class Works(Endpoint):
                               request_params=request_params,
                               context=context,
                               etiquette=self.etiquette,
-                              timeout=self.timeout)
+                              timeout=self.timeout,
+                              backend=self.backend,)
 
     def sample(self, sample_size=20):
         """
@@ -972,6 +987,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def doi(self, doi, only_message=True):
@@ -1113,6 +1129,10 @@ class Funders(Endpoint):
         "location": None,
     }
 
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30, backend=None,):
+        super().__init__(request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout, backend,)
+        self.backend = backend
+
     def query(self, *args):
         """
         This method retrieve an iterable object that implements the method
@@ -1145,6 +1165,7 @@ class Funders(Endpoint):
             request_params=request_params,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def filter(self, **kwargs):
@@ -1198,6 +1219,7 @@ class Funders(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def funder(self, funder_id, only_message=True):
@@ -1299,6 +1321,10 @@ class Members(Endpoint):
         "current-doi-count": validators.is_integer,
     }
 
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30, backend=None,):
+        super().__init__(request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout, backend)
+        self.backend = backend
+
     def query(self, *args):
         """
         This method retrieve an iterable object that implements the method
@@ -1350,6 +1376,7 @@ class Members(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def filter(self, **kwargs):
@@ -1402,6 +1429,7 @@ class Members(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def member(self, member_id, only_message=True):
@@ -1693,6 +1721,10 @@ class Journals(Endpoint):
 
     ENDPOINT = "journals"
 
+    def __init__(self, request_url=None, request_params=None, context=None, etiquette=None, throttle=True, crossref_plus_token=None, timeout=30, backend=None):
+        super().__init__(request_url, request_params, context, etiquette, throttle, crossref_plus_token, timeout, backend)
+        self.backend=backend
+
     def query(self, *args):
         """
         This method retrieve an iterable object that implements the method
@@ -1727,6 +1759,7 @@ class Journals(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            backend=self.backend,
         )
 
     def journal(self, issn, only_message=True):
