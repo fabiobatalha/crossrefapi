@@ -274,10 +274,12 @@ class Endpoint:
 
         return req.url
 
-    def all(self):
+    def all(self, request_params: dict = None):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
-        request_params = {}
+
+        if request_params is None:
+            request_params = {}
 
         return iter(
             self.__class__(
