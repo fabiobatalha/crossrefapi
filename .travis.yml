@@ -6,7 +6,8 @@ matrix:
     - python: 3.8
     - python: 3.9
     - python: 3.11
-before_install:
-  - pip install --upgrade setuptools pip
-install: python setup.py develop
-script: python setup.py test
+install:
+  - poetry install --no-interaction --no-ansi -vvv
+script:
+  - ruff tests
+  - ruff crossref

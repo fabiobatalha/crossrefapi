@@ -1,4 +1,3 @@
-# coding: utf-8
 
 import unittest
 
@@ -9,105 +8,105 @@ class ValidatorsTest(unittest.TestCase):
 
     def test_directory_1(self):
 
-        result = validators.directory('DOAJ')
+        result = validators.directory("DOAJ")
 
-        self.assertTrue(result)
+        assert result
 
     def test_directory_2(self):
 
         with self.assertRaises(ValueError):
-            validators.directory('any invalid archive')
+            validators.directory("any invalid archive")
 
     def test_archive_1(self):
 
-        result = validators.archive('CLOCKSS')
+        result = validators.archive("CLOCKSS")
 
-        self.assertTrue(result)
+        assert result
 
     def test_archive_2(self):
 
         with self.assertRaises(ValueError):
-            validators.archive('any invalid archive')
+            validators.archive("any invalid archive")
 
     def test_document_type_1(self):
 
-        result = validators.document_type('book-chapter')
+        result = validators.document_type("book-chapter")
 
-        self.assertTrue(result)
+        assert result
 
     def test_document_type_2(self):
 
         with self.assertRaises(ValueError):
-            validators.document_type('any invalid type')
+            validators.document_type("any invalid type")
 
     def test_is_bool_3(self):
 
-        result = validators.is_bool('true')
+        result = validators.is_bool("true")
 
-        self.assertTrue(result)
+        assert result
 
     def test_is_bool_4(self):
 
-        result = validators.is_bool('false')
+        result = validators.is_bool("false")
 
-        self.assertTrue(result)
+        assert result
 
     def test_is_bool_5(self):
 
-        result = validators.is_bool('1')
+        result = validators.is_bool("1")
 
-        self.assertTrue(result)
+        assert result
 
     def test_is_bool_5(self):
 
         with self.assertRaises(ValueError):
-            validators.is_bool('jljlj')
+            validators.is_bool("jljlj")
 
     def test_is_date_1(self):
 
-        result = validators.is_date('2017')
+        result = validators.is_date("2017")
 
-        self.assertTrue(result)
+        assert result
 
     def test_is_date_2(self):
 
-        result = validators.is_date('2017-12')
+        result = validators.is_date("2017-12")
 
-        self.assertTrue(result)
+        assert result
 
     def test_is_date_3(self):
 
-        result = validators.is_date('2017-12-31')
+        result = validators.is_date("2017-12-31")
 
-        self.assertTrue(result)
+        assert result
 
     def test_is_date_4(self):
 
         with self.assertRaises(ValueError):
-            validators.is_date('asas')
+            validators.is_date("asas")
 
     def test_is_date_5(self):
 
         with self.assertRaises(ValueError):
-            validators.is_date('2017-30')
+            validators.is_date("2017-30")
 
     def test_is_date_6(self):
 
         with self.assertRaises(ValueError):
-            validators.is_date('2017-12-00')
+            validators.is_date("2017-12-00")
 
     def test_is_integer_1(self):
 
-        result = validators.is_integer('10')
+        result = validators.is_integer("10")
 
-        self.assertTrue(result)
+        assert result
 
     def test_is_integer_1(self):
 
         with self.assertRaises(ValueError):
-            validators.is_integer('-1')
+            validators.is_integer("-1")
 
     def test_is_integer_3(self):
 
         with self.assertRaises(ValueError):
-            validators.is_integer('dd')
+            validators.is_integer("dd")
