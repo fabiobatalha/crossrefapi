@@ -7,10 +7,10 @@ matrix:
     - python: 3.9
     - python: 3.11
 before_install:
-  - pip install pipx
   - pip install poetry==1.5.1
 install:
   - poetry install --no-interaction --no-ansi -vvv
 script:
   - ruff tests
   - ruff crossref
+  - pytest
