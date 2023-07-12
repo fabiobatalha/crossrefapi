@@ -1,7 +1,9 @@
 language: python
 python:
-  - "3.10"
+  - "3.9"
 before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install libxml2-dev
     - pip install --upgrade setuptools pip
 install: python setup.py develop
 script: python setup.py test
