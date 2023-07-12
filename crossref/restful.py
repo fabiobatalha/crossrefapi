@@ -1,9 +1,12 @@
-# coding: utf-8
+from __future__ import annotations
 
-import requests
+import contextlib
+import typing
 from time import sleep
 
-from crossref import validators, VERSION
+import requests
+
+from crossref import VERSION, validators
 
 LIMIT = 100
 MAXOFFSET = 10000
@@ -24,7 +27,7 @@ class UrlSyntaxError(CrossrefAPIError, ValueError):
     pass
 
 
-class HTTPRequest(object):
+class HTTPRequest:
 
     def __init__(self, throttle=True):
         self.throttle = throttle
@@ -32,19 +35,11 @@ class HTTPRequest(object):
 
     def _update_rate_limits(self, headers):
 
-        try:
+        with contextlib.suppress(ValueError):
             self.rate_limits["x-rate-limit-limit"] = int(headers.get("x-rate-limit-limit", 50))
-        except ValueError:
-            # Assume the default value in case the parameter can not be parsed
-            # Waiting for definitions in https://github.com/fabiobatalha/crossrefapi/issues/38
-            pass
 
-        try:
+        with contextlib.suppress(ValueError):
             interval_value = int(headers.get("x-rate-limit-interval", "1s")[:-1])
-        except ValueError:
-            # Assume the default value in case the parameter can not be parsed
-            # Waiting for definitions in https://github.com/fabiobatalha/crossrefapi/issues/38
-            pass
 
         interval_scope = headers.get("x-rate-limit-interval", "1s")[-1]
 
@@ -60,29 +55,23 @@ class HTTPRequest(object):
     def throttling_time(self):
         return self.rate_limits["x-rate-limit-interval"] / self.rate_limits["x-rate-limit-limit"]
 
-    def do_http_request(
-        self,
-        method,
-        endpoint,
-        data=None,
-        files=None,
-        timeout=100,
-        only_headers=False,
-        custom_header=None,
+    def do_http_request(  # noqa: PLR0913
+            self,
+            method,
+            endpoint,
+            data=None,
+            files=None,
+            timeout=100,
+            only_headers=False,
+            custom_header=None,
     ):
 
         if only_headers is True:
-            return requests.head(endpoint)
+            return requests.head(endpoint, timeout=2)
 
-        if method == "post":
-            action = requests.post
-        else:
-            action = requests.get
+        action = requests.post if method == "post" else requests.get
 
-        if custom_header:
-            headers = custom_header
-        else:
-            headers = {"user-agent": str(Etiquette())}
+        headers = custom_header if custom_header else {"user-agent": str(Etiquette())}
         if method == "post":
             result = action(endpoint, data=data, files=files, timeout=timeout, headers=headers)
         else:
@@ -96,19 +85,18 @@ class HTTPRequest(object):
 
 
 def build_url_endpoint(endpoint, context=None):
-
     endpoint = "/".join([i for i in [context, endpoint] if i])
 
-    return "https://%s/%s" % (API, endpoint)
+    return f"https://{API}/{endpoint}"
 
 
 class Etiquette:
     def __init__(
-        self,
-        application_name="undefined",
-        application_version="undefined",
-        application_url="undefined",
-        contact_email="anonymous",
+            self,
+            application_name="undefined",
+            application_version="undefined",
+            application_url="undefined",
+            contact_email="anonymous",
     ):
         self.application_name = application_name
         self.application_version = application_version
@@ -116,8 +104,7 @@ class Etiquette:
         self.contact_email = contact_email
 
     def __str__(self):
-
-        return "%s/%s (%s; mailto:%s) BasedOn: CrossrefAPI/%s" % (
+        return "{}/{} ({}; mailto:{}) BasedOn: CrossrefAPI/{}".format(
             self.application_name,
             self.application_version,
             self.application_url,
@@ -127,18 +114,17 @@ class Etiquette:
 
 
 class Endpoint:
-
     CURSOR_AS_ITER_METHOD = False
 
-    def __init__(
-        self,
-        request_url=None,
-        request_params=None,
-        context=None,
-        etiquette=None,
-        throttle=True,
-        crossref_plus_token=None,
-        timeout=30,
+    def __init__( # noqa: PLR0913
+            self,
+            request_url=None,
+            request_params=None,
+            context=None,
+            etiquette=None,
+            throttle=True,
+            crossref_plus_token=None,
+            timeout=30,
     ):
         self.do_http_request = HTTPRequest(throttle=throttle).do_http_request
         self.etiquette = etiquette or Etiquette()
@@ -147,13 +133,12 @@ class Endpoint:
         if crossref_plus_token:
             self.custom_header["Crossref-Plus-API-Token"] = self.crossref_plus_token
         self.request_url = request_url or build_url_endpoint(self.ENDPOINT, context)
-        self.request_params = request_params or dict()
+        self.request_params = request_params or {}
         self.context = context or ""
         self.timeout = timeout
 
     @property
     def _rate_limits(self):
-        request_params = dict(self.request_params)
         request_url = str(self.request_url)
 
         result = self.do_http_request(
@@ -165,22 +150,18 @@ class Endpoint:
             throttle=False,
         )
 
-        rate_limits = {
+        return {
             "x-rate-limit-limit": result.headers.get("x-rate-limit-limit", "undefined"),
             "x-rate-limit-interval": result.headers.get("x-rate-limit-interval", "undefined"),
         }
-
-        return rate_limits
 
     def _escaped_pagging(self):
         escape_pagging = ["offset", "rows"]
         request_params = dict(self.request_params)
 
         for item in escape_pagging:
-            try:
+            with contextlib.suppress(KeyError):
                 del request_params[item]
-            except KeyError:
-                pass
 
         return request_params
 
@@ -228,9 +209,11 @@ class Endpoint:
             3597
             >>> Works().query('zika').filter(prefix='10.1590').count()
             61
-            >>> Works().query('zika').filter(prefix='10.1590').sort('published').order('desc').filter(has_abstract='true').count()
+            >>> Works().query('zika').filter(prefix='10.1590').sort('published') \
+                .order('desc').filter(has_abstract='true').count()
             14
-            >>> Works().query('zika').filter(prefix='10.1590').sort('published').order('desc').filter(has_abstract='true').query(author='Marli').count()
+            >>> Works().query('zika').filter(prefix='10.1590').sort('published') \
+                .order('desc').filter(has_abstract='true').query(author='Marli').count()
             1
         """
         request_params = dict(self.request_params)
@@ -262,10 +245,14 @@ class Endpoint:
             'https://api.crossref.org/works?query=zika'
             >>> Works().query('zika').filter(prefix='10.1590').url
             'https://api.crossref.org/works?query=zika&filter=prefix%3A10.1590'
-            >>> Works().query('zika').filter(prefix='10.1590').sort('published').order('desc').url
-            'https://api.crossref.org/works?sort=published&order=desc&query=zika&filter=prefix%3A10.1590'
-            >>> Works().query('zika').filter(prefix='10.1590').sort('published').order('desc').filter(has_abstract='true').query(author='Marli').url
-            'https://api.crossref.org/works?sort=published&filter=prefix%3A10.1590%2Chas-abstract%3Atrue&query=zika&order=desc&query.author=Marli'
+            >>> Works().query('zika').filter(prefix='10.1590').sort('published') \
+                .order('desc').url
+            'https://api.crossref.org/works?sort=published
+            &order=desc&query=zika&filter=prefix%3A10.1590'
+            >>> Works().query('zika').filter(prefix='10.1590').sort('published') \
+                .order('desc').filter(has_abstract='true').query(author='Marli').url
+            'https://api.crossref.org/works?sort=published
+            &filter=prefix%3A10.1590%2Chas-abstract%3Atrue&query=zika&order=desc&query.author=Marli'
         """
         request_params = self._escaped_pagging()
 
@@ -274,7 +261,7 @@ class Endpoint:
 
         return req.url
 
-    def all(self, request_params: dict = None):
+    def all(self, request_params: dict | None):  # noqa: A003
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
 
@@ -289,10 +276,10 @@ class Endpoint:
                 etiquette=self.etiquette,
                 crossref_plus_token=self.crossref_plus_token,
                 timeout=self.timeout,
-            )
+            ),
         )
 
-    def __iter__(self):
+    def __iter__(self): # noqa: PLR0912 - To many branches is not a problem.
         request_url = str(self.request_url)
 
         if "sample" in self.request_params:
@@ -367,11 +354,11 @@ class Endpoint:
                 request_params["offset"] += LIMIT
 
                 if request_params["offset"] >= MAXOFFSET:
-                    raise MaxOffsetError("Offset exceded the max offset of %d", MAXOFFSET)
+                    msg = "Offset exceded the max offset of %d"
+                    raise MaxOffsetError(msg, MAXOFFSET)
 
 
 class Works(Endpoint):
-
     CURSOR_AS_ITER_METHOD = True
 
     ENDPOINT = "works"
@@ -470,10 +457,10 @@ class Works(Endpoint):
         "update-policy",
         "update-to",
         "updated-by",
-        "volume"
+        "volume",
     )
 
-    FILTER_VALIDATOR = {
+    FILTER_VALIDATOR: typing.ClassVar[dict] = {
         "alternative_id": None,
         "archive": validators.archive,
         "article_number": None,
@@ -555,7 +542,7 @@ class Works(Endpoint):
         "updates": None,
     }
 
-    FACET_VALUES = {
+    FACET_VALUES: typing.ClassVar[dict] = {
         "archive": None,
         "affiliation": None,
         "assertion": None,
@@ -596,8 +583,8 @@ class Works(Endpoint):
             >>> for item in query:
             ...    print(item['title'], item['deposited']['date-time'])
             ...
-            ['A Facile Preparation of 1-(6-Hydroxyindol-1-yl)-2,2-dimethylpropan-1-one'] 2007-02-13T20:56:13Z
-            ['Contributions to the Flora of the Lake Champlain Valley, New York and Vermont, III'] 2007-02-13T20:56:13Z
+            ['A Facile Preparation of ... an-1-one'] 2007-02-13T20:56:13Z
+            ['Contributions to the F  ... Vermont, III'] 2007-02-13T20:56:13Z
             ['Pilularia americana A. Braun in Klamath County, Oregon'] 2007-02-13T20:56:13Z
             ...
 
@@ -609,9 +596,9 @@ class Works(Endpoint):
             >>> for item in query:
             ...    print(item['title'], item['deposited']['date-time'])
             ...
-            ["Planning for the unexpected: Ebola virus, Zika virus, what's next?"] 2017-05-29T12:55:53Z
-            ['Sensitivity of RT-PCR method in samples shown to be positive for Zika virus by RT-qPCR in vector competence studies'] 2017-05-29T12:53:54Z
-            ['Re-evaluation of routine dengue virus serology in travelers in the era of Zika virus emergence'] 2017-05-29T10:46:11Z
+            ["Planning for the unexpected: ... , Zika virus, what's next?"] 2017-05-29T12:55:53Z
+            ['Sensitivity of RT-PCR method ... or competence studies'] 2017-05-29T12:53:54Z
+            ['Re-evaluation of routine den ... a of Zika virus emergence'] 2017-05-29T10:46:11Z
             ...
         """
 
@@ -620,9 +607,10 @@ class Works(Endpoint):
         request_params = dict(self.request_params)
 
         if order not in self.ORDER_VALUES:
+            msg = "Sort order specified as {} but must be one of: {}".format(str(order), ", ".join(
+                self.ORDER_VALUES))
             raise UrlSyntaxError(
-                "Sort order specified as %s but must be one of: %s"
-                % (str(order), ", ".join(self.ORDER_VALUES))
+                msg,
             )
 
         request_params["order"] = order
@@ -651,51 +639,55 @@ class Works(Endpoint):
         Example 1:
             >>> from crossref.restful import Works
             >>> works = Works()
-            >>> for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI, prefix'):
+            >>> for i in works.filter(has_funder='true', has_license='true') \
+                .sample(5).select('DOI, prefix'):
             ...     print(i)
             ...
-            {'DOI': '10.1016/j.jdiacomp.2016.06.005', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.mssp.2015.07.076', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1002/slct.201700168', 'prefix': '10.1002', 'member': 'http://id.crossref.org/member/311'}
-            {'DOI': '10.1016/j.actbio.2017.01.034', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.optcom.2013.11.013', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.jdiacomp.2016.06.005', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.mssp.2015.07.076', 'prefix': '10.1016'}
+            {'DOI': '10.1002/slct.201700168', 'prefix': '10.1002'}
+            {'DOI': '10.1016/j.actbio.2017.01.034', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.optcom.2013.11.013', 'prefix': '10.1016'}
             ...
         Example 2:
             >>> from crossref.restful import Works
             >>> works = Works()
 
-            >>> for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI').select('prefix'):
+            >>> for i in works.filter(has_funder='true', has_license='true') \
+                .sample(5).select('DOI').select('prefix'):
             >>>     print(i)
             ...
-            {'DOI': '10.1016/j.sajb.2016.03.010', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.jneumeth.2009.08.017', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.tetlet.2016.05.058', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1007/s00170-017-0689-z', 'prefix': '10.1007', 'member': 'http://id.crossref.org/member/297'}
-            {'DOI': '10.1016/j.dsr.2016.03.004', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1016/j.sajb.2016.03.010', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.jneumeth.2009.08.017', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.tetlet.2016.05.058', 'prefix': '10.1016'}
+            {'DOI': '10.1007/s00170-017-0689-z', 'prefix': '10.1007'}
+            {'DOI': '10.1016/j.dsr.2016.03.004', 'prefix': '10.1016'}
             ...
         Example: 3:
             >>> from crossref.restful import Works
             >>> works = Works()
-            >>>: for i in works.filter(has_funder='true', has_license='true').sample(5).select(['DOI', 'prefix']):
+            >>>: for i in works.filter(has_funder='true', has_license='true') \
+                .sample(5).select(['DOI', 'prefix']):
             >>>      print(i)
             ...
-            {'DOI': '10.1111/zoj.12146', 'prefix': '10.1093', 'member': 'http://id.crossref.org/member/286'}
-            {'DOI': '10.1016/j.bios.2014.04.018', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.cej.2016.10.011', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.dci.2017.08.001', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.icheatmasstransfer.2016.09.012', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1111/zoj.12146', 'prefix': '10.1093'}
+            {'DOI': '10.1016/j.bios.2014.04.018', 'prefix': '10.1016}
+            {'DOI': '10.1016/j.cej.2016.10.011', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.dci.2017.08.001', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.icheatmasstransfer.2016.09.012', 'prefix': '10.1016'}
             ...
         Example: 4:
             >>> from crossref.restful import Works
             >>> works = Works()
-            >>>: for i in works.filter(has_funder='true', has_license='true').sample(5).select('DOI', 'prefix'):
+            >>>: for i in works.filter(has_funder='true', has_license='true') \
+                .sample(5).select('DOI', 'prefix'):
             >>>      print(i)
             ...
-            {'DOI': '10.1111/zoj.12146', 'prefix': '10.1093', 'member': 'http://id.crossref.org/member/286'}
-            {'DOI': '10.1016/j.bios.2014.04.018', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.cej.2016.10.011', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.dci.2017.08.001', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
-            {'DOI': '10.1016/j.icheatmasstransfer.2016.09.012', 'prefix': '10.1016', 'member': 'http://id.crossref.org/member/78'}
+            {'DOI': '10.1111/zoj.12146', 'prefix': '10.1093'}
+            {'DOI': '10.1016/j.bios.2014.04.018', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.cej.2016.10.011', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.dci.2017.08.001', 'prefix': '10.1016'}
+            {'DOI': '10.1016/j.icheatmasstransfer.2016.09.012', 'prefix': '10.1016'}
             ...
         """
 
@@ -716,13 +708,15 @@ class Works(Endpoint):
         invalid_select_args = set(select_args) - set(self.FIELDS_SELECT)
 
         if len(invalid_select_args) != 0:
+            msg = "Select field's specified as ({}) but must be one of: {}".format(
+                ", ".join(invalid_select_args), ", ".join(self.FIELDS_SELECT))
             raise UrlSyntaxError(
-                "Select field's specified as (%s) but must be one of: %s"
-                % (", ".join(invalid_select_args), ", ".join(self.FIELDS_SELECT))
+                msg,
             )
 
         request_params["select"] = ",".join(
-            sorted([i for i in set(request_params.get("select", "").split(",") + select_args) if i])
+            sorted(
+                [i for i in set(request_params.get("select", "").split(",") + select_args) if i]),
         )
 
         return self.__class__(
@@ -753,9 +747,9 @@ class Works(Endpoint):
             >>> for item in query:
             ...     print(item['title'])
             ...
-            ['Integralidade e transdisciplinaridade em equipes multiprofissionais na saúde coletiva']
+            ['Integralidade e transdisciplinaridade em ... multiprofissionais na saúde coletiva']
             ['Aprendizagem em grupo operativo de diabetes: uma abordagem etnográfica']
-            ['A rotatividade de enfermeiros e médicos: um impasse na implementação da Estratégia de Saúde da Família']
+            ['A rotatividade de enfermeiros e médicos: ... da Estratégia de Saúde da Família']
             ...
 
         Example 2:
@@ -767,7 +761,7 @@ class Works(Endpoint):
             ...
             ['Proceedings of the American Physical Society']
             ['Annual Meeting of the Research Society on Alcoholism']
-            ['Local steroid injections: Comment on the American college of rheumatology guidelines for the management of osteoarthritis of the hip and on the letter by Swezey']
+            ['Local steroid injections: ... hip and on the letter by Swezey']
             ['Intraventricular neurocytoma']
             ['Mammography accreditation']
             ['Temporal lobe necrosis in nasopharyngeal carcinoma: Pictorial essay']
@@ -778,9 +772,10 @@ class Works(Endpoint):
         request_params = dict(self.request_params)
 
         if sort not in self.SORT_VALUES:
+            msg = "Sort field specified as {} but must be one of: {}".format(str(sort), ", ".join(
+                self.SORT_VALUES))
             raise UrlSyntaxError(
-                "Sort field specified as %s but must be one of: %s"
-                % (str(sort), ", ".join(self.SORT_VALUES))
+                msg,
             )
 
         request_params["sort"] = sort
@@ -793,7 +788,7 @@ class Works(Endpoint):
             timeout=self.timeout,
         )
 
-    def filter(self, **kwargs):
+    def filter(self, **kwargs):  # noqa: A003
         """
         This method retrieve an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
@@ -802,7 +797,7 @@ class Works(Endpoint):
         This method can be used compounded and recursively with query, filter,
         order, sort and facet methods.
 
-        kwargs: valid FILTER_VALIDATOR arguments. Replace `.` with `__` and 
+        kwargs: valid FILTER_VALIDATOR arguments. Replace `.` with `__` and
         `-` with `_` when using parameters.
 
         return: iterable object of Works metadata
@@ -815,7 +810,7 @@ class Works(Endpoint):
             ...     print(item['title'])
             ...
             ['Design of smiling-face-shaped band-notched UWB antenna']
-            ['Phase I clinical and pharmacokinetic study of PM01183 (a tetrahydroisoquinoline, Lurbinectedin) in combination with gemcitabine in patients with advanced solid tumors']
+            ['Phase I clinical and pharmacokinetic ... tients with advanced solid tumors']
             ...
         """
         context = str(self.context)
@@ -825,9 +820,13 @@ class Works(Endpoint):
         for fltr, value in kwargs.items():
             decoded_fltr = fltr.replace("__", ".").replace("_", "-")
             if decoded_fltr not in self.FILTER_VALIDATOR.keys():
+                msg = (
+                    f"Filter {decoded_fltr!s} specified but there is no such filter for"
+                    f" this route. Valid filters for this route"
+                    f" are: {', '.join(self.FILTER_VALIDATOR.keys())}"
+                )
                 raise UrlSyntaxError(
-                    "Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s"
-                    % (str(decoded_fltr), ", ".join(self.FILTER_VALIDATOR.keys()))
+                    msg,
                 )
 
             if self.FILTER_VALIDATOR[decoded_fltr] is not None:
@@ -853,20 +852,27 @@ class Works(Endpoint):
         request_params["rows"] = 0
 
         if facet_name not in self.FACET_VALUES.keys():
-            raise UrlSyntaxError(
-                "Facet %s specified but there is no such facet for this route. Valid facets for this route are: *, affiliation, funder-name, funder-doi, publisher-name, orcid, container-title, assertion, archive, update-type, issn, published, source, type-name, license, category-name, relation-type, assertion-group"
-                % str(facet_name),
+            msg = (
+                f"Facet {facet_name} specified but there is no such facet for this route."
+                f" Valid facets for this route are: *, affiliation, funder-name, funder-doi,"
+                f" publisher-name, orcid, container-title, assertion, archive, update-type,"
+                f" issn, published, source, type-name, license, category-name, relation-type,"
+                f" assertion-group"
+            )
+            raise UrlSyntaxError((
+                msg
+            ),
                 ", ".join(self.FACET_VALUES.keys()),
             )
 
         facet_count = (
             self.FACET_VALUES[facet_name]
             if self.FACET_VALUES[facet_name] is not None
-            and self.FACET_VALUES[facet_name] <= facet_count
+               and self.FACET_VALUES[facet_name] <= facet_count
             else facet_count
         )
 
-        request_params["facet"] = "%s:%s" % (facet_name, facet_count)
+        request_params["facet"] = f"{facet_name}:{facet_count}"
         result = self.do_http_request(
             "get",
             request_url,
@@ -919,9 +925,13 @@ class Works(Endpoint):
 
         for field, value in kwargs.items():
             if field not in self.FIELDS_QUERY:
+                msg = (
+                    f"Field query {field!s} specified but there is no such field query for"
+                    " this route."
+                    f" Valid field queries for this route are: {', '.join(self.FIELDS_QUERY)}"
+                )
                 raise UrlSyntaxError(
-                    "Field query %s specified but there is no such field query for this route. Valid field queries for this route are: %s"
-                    % (str(field), ", ".join(self.FIELDS_QUERY))
+                    msg,
                 )
             request_params["query.%s" % field.replace("_", "-")] = value
 
@@ -948,7 +958,7 @@ class Works(Endpoint):
             'https://api.crossref.org/works?sample=2'
             >>> [i['title'] for i in works.sample(2)]
             [['A study on the hemolytic properties ofPrevotella nigrescens'],
-            ['The geometry and the radial breathing mode of carbon nanotubes: beyond the ideal behaviour']]
+            ['The geometry and the radial ... of carbon nanotubes: beyond the ideal behaviour']]
         """
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
@@ -956,15 +966,17 @@ class Works(Endpoint):
 
         try:
             if sample_size > 100:
-                raise UrlSyntaxError(
-                    "Integer specified as %s but must be a positive integer less than or equal to 100."
-                    % str(sample_size)
+                msg = (
+                    f"Integer specified as {sample_size!s} but"
+                    " must be a positive integer less than or equal to 100."
                 )
-        except TypeError:
-            raise UrlSyntaxError(
-                "Integer specified as %s but must be a positive integer less than or equal to 100."
-                % str(sample_size)
+                raise UrlSyntaxError(msg)  # noqa: TRY301
+        except TypeError as exc:
+            msg = (
+                f"Integer specified as {sample_size!s} but"
+                " must be a positive integer less than or equal to 100."
             )
+            raise UrlSyntaxError(msg) from exc
 
         request_params["sample"] = sample_size
 
@@ -989,16 +1001,20 @@ class Works(Endpoint):
             >>> from crossref.restful import Works
             >>> works = Works()
             >>> works.doi('10.1590/S0004-28032013005000001')
-            {'is-referenced-by-count': 6, 'reference-count': 216, 'DOI': '10.1590/s0004-28032013005000001',
+            {'is-referenced-by-count': 6, 'reference-count': 216,
+            'DOI': '10.1590/s0004-28032013005000001',
             'subtitle': [], 'issued': {'date-parts': [[2013, 4, 19]]}, 'source': 'Crossref',
-            'short-container-title': ['Arq. Gastroenterol.'], 'references-count': 216, 'short-title': [],
+            'short-container-title': ['Arq. Gastroenterol.'], 'references-count': 216,
+            'short-title': [],
             'deposited': {'timestamp': 1495911725000, 'date-time': '2017-05-27T19:02:05Z',
             'date-parts': [[2017, 5, 27]]}, 'ISSN': ['0004-2803'], 'type': 'journal-article',
             'URL': 'http://dx.doi.org/10.1590/s0004-28032013005000001',
             'indexed': {'timestamp': 1496034748592, 'date-time': '2017-05-29T05:12:28Z',
-            'date-parts': [[2017, 5, 29]]}, 'content-domain': {'crossmark-restriction': False, 'domain': []},
+            'date-parts': [[2017, 5, 29]]}, 'content-domain': {'crossmark-restriction': False,
+            'domain': []},
             'created': {'timestamp': 1374613284000, 'date-time': '2013-07-23T21:01:24Z',
-            'date-parts': [[2013, 7, 23]]}, 'issn-type': [{'value': '0004-2803', 'type': 'electronic'}],
+            'date-parts': [[2013, 7, 23]]}, 'issn-type': [{'value': '0004-2803',
+            'type': 'electronic'}],
             'page': '81-96', 'volume': '50', 'original-title': [], 'subject': ['Gastroenterology'],
             'relation': {}, 'container-title': ['Arquivos de Gastroenterologia'], 'member': '530',
             'prefix': '10.1590', 'published-print': {'date-parts': [[2013, 4, 19]]},
@@ -1009,9 +1025,10 @@ class Works(Endpoint):
             'family': 'Coelho', 'given': 'Luiz Gonzaga'}, {'affiliation': [
             {'name': 'Universidade Federal do Rio Grande do Sul,  Brazil'}], 'family': 'Maguinilk',
             'given': 'Ismael'}, {'affiliation': [
-            {'name': 'Presidente de Honra do Núcleo Brasileiro para Estudo do Helicobacter,  Brazil'}],
+            {'name': 'Presidente de Honra do Núcleo ... para Estudo do Helicobacter,  Brazil'}],
             'family': 'Zaterka', 'given': 'Schlioma'}, {'affiliation': [
-            {'name': 'Universidade Federal do Piauí,  Brasil'}], 'family': 'Parente', 'given': 'José Miguel'},
+            {'name': 'Universidade Federal do Piauí,  Brasil'}], 'family': 'Parente',
+             'given': 'José Miguel'},
             {'affiliation': [{'name': 'Universidade Federal de Minas Gerais,  BRAZIL'}],
             'family': 'Passos', 'given': 'Maria do Carmo Friche'}, {'affiliation': [
             {'name': 'Universidade de São Paulo,  Brasil'}], 'family': 'Moraes-Filho',
@@ -1028,7 +1045,7 @@ class Works(Endpoint):
         )
 
         if result.status_code == 404:
-            return
+            return None
         result = result.json()
 
         return result["message"] if only_message is True else result
@@ -1046,7 +1063,7 @@ class Works(Endpoint):
             >>> from crossref.restful import Works
             >>> works = Works()
             >>> works.agency('10.1590/S0004-28032013005000001')
-            {'DOI': '10.1590/s0004-28032013005000001', 'agency': {'label': 'CrossRef', 'id': 'crossref'}}
+            {'DOI': '10.1590/s0004-2...5000001', 'agency': {'label': 'CrossRef', 'id': 'crossref'}}
         """
         request_url = build_url_endpoint("/".join([self.ENDPOINT, doi, "agency"]))
         request_params = {}
@@ -1060,7 +1077,7 @@ class Works(Endpoint):
         )
 
         if result.status_code == 404:
-            return
+            return None
 
         result = result.json()
 
@@ -1106,14 +1123,11 @@ class Works(Endpoint):
 
 
 class Funders(Endpoint):
-
     CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = "funders"
 
-    FILTER_VALIDATOR = {
-        "location": None,
-    }
+    FILTER_VALIDATOR: typing.ClassVar[dict] = {"location": None}
 
     def query(self, *args):
         """
@@ -1149,7 +1163,7 @@ class Funders(Endpoint):
             timeout=self.timeout,
         )
 
-    def filter(self, **kwargs):
+    def filter(self, **kwargs):  # noqa: A003
         """
         This method retrieve an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
@@ -1181,9 +1195,12 @@ class Funders(Endpoint):
         for fltr, value in kwargs.items():
             decoded_fltr = fltr.replace("__", ".").replace("_", "-")
             if decoded_fltr not in self.FILTER_VALIDATOR.keys():
+                msg = (
+                    f"Filter {decoded_fltr!s} specified but there is no such filter for this route."
+                    f" Valid filters for this route are: {', '.join(self.FILTER_VALIDATOR.keys())}"
+                )
                 raise UrlSyntaxError(
-                    "Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s"
-                    % (str(decoded_fltr), ", ".join(self.FILTER_VALIDATOR.keys()))
+                    msg,
                 )
 
             if self.FILTER_VALIDATOR[decoded_fltr] is not None:
@@ -1203,7 +1220,7 @@ class Funders(Endpoint):
         )
 
     def funder(self, funder_id, only_message=True):
-        """funder
+        """
         This method retrive a crossref funder metadata related to the
         given funder_id.
 
@@ -1232,7 +1249,7 @@ class Funders(Endpoint):
         )
 
         if result.status_code == 404:
-            return
+            return None
 
         result = result.json()
 
@@ -1284,17 +1301,16 @@ class Funders(Endpoint):
 
         return: Works()
         """
-        context = "%s/%s" % (self.ENDPOINT, str(funder_id))
+        context = f"{self.ENDPOINT}/{funder_id!s}"
         return Works(context=context)
 
 
 class Members(Endpoint):
-
     CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = "members"
 
-    FILTER_VALIDATOR = {
+    FILTER_VALIDATOR: typing.ClassVar[dict] = {
         "prefix": None,
         "has-public-references": validators.is_bool,
         "backfile-doi-count": validators.is_integer,
@@ -1318,25 +1334,32 @@ class Members(Endpoint):
             'https://api.crossref.org/journals?query=Public+Health+Health+Science'
             >>> next(iter(members.query('Korean Association')))
             {'prefix': [{'value': '10.20433', 'public-references': False,
-            'name': 'The New Korean Philosophical Association'}], 'counts': {'total-dois': 0, 'backfile-dois': 0,
+            'name': 'The New Korean Philosophical Association'}],
+            'counts': {'total-dois': 0, 'backfile-dois': 0,
             'current-dois': 0}, 'coverage': {'references-backfile': 0, 'references-current': 0,
-            'abstracts-current': 0, 'update-policies-backfile': 0, 'orcids-current': 0, 'orcids-backfile': 0,
-            'licenses-current': 0, 'affiliations-backfile': 0, 'licenses-backfile': 0, 'update-policies-current': 0,
+            'abstracts-current': 0, 'update-policies-backfile': 0, 'orcids-current': 0,
+            'orcids-backfile': 0,
+            'licenses-current': 0, 'affiliations-backfile': 0, 'licenses-backfile': 0,
+            'update-policies-current': 0,
             'resource-links-current': 0, 'resource-links-backfile': 0, 'award-numbers-backfile': 0,
-            'abstracts-backfile': 0, 'funders-current': 0, 'funders-backfile': 0, 'affiliations-current': 0,
+            'abstracts-backfile': 0, 'funders-current': 0, 'funders-backfile': 0,
+            'affiliations-current': 0,
             'award-numbers-current': 0}, 'flags': {'deposits-orcids-backfile': False,
-            'deposits-references-backfile': False, 'deposits-licenses-current': False, 'deposits': False,
-            'deposits-abstracts-current': False, 'deposits-award-numbers-current': False, 'deposits-articles': False,
+            'deposits-references-backfile': False, 'deposits-licenses-current': False,
+            'deposits': False,
+            'deposits-abstracts-current': False, 'deposits-award-numbers-current': False,
+            'deposits-articles': False,
             'deposits-resource-links-backfile': False, 'deposits-funders-current': False,
             'deposits-award-numbers-backfile': False, 'deposits-references-current': False,
             'deposits-abstracts-backfile': False, 'deposits-funders-backfile': False,
             'deposits-update-policies-current': False, 'deposits-orcids-current': False,
             'deposits-licenses-backfile': False, 'deposits-affiliations-backfile': False,
             'deposits-update-policies-backfile': False, 'deposits-resource-links-current': False,
-            'deposits-affiliations-current': False}, 'names': ['The New Korean Philosophical Association'],
-            'breakdowns': {'dois-by-issued-year': []}, 'location': 'Dongsin Tower, 4th Floor 5, Mullae-dong 6-ga,
+            'deposits-affiliations-current': False}, 'names': ['The New Korean ... Association'],
+            'breakdowns': {'dois-by-issued-year': []}, 'location': 'Dongsin Tow ... llae-dong 6-ga,
             Mullae-dong 6-ga Seoul 150-096 South Korea', 'prefixes': ['10.20433'],
-            'last-status-check-time': 1496034177684, 'id': 8334, 'tokens': ['the', 'new', 'korean', 'philosophical',
+            'last-status-check-time': 1496034177684, 'id': 8334,
+            'tokens': ['the', 'new', 'korean', 'philosophical',
             'association'], 'primary-name': 'The New Korean Philosophical Association'}
         """
         context = str(self.context)
@@ -1354,7 +1377,7 @@ class Members(Endpoint):
             timeout=self.timeout,
         )
 
-    def filter(self, **kwargs):
+    def filter(self, **kwargs):  # noqa: A003
         """
         This method retrieve an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
@@ -1374,8 +1397,15 @@ class Members(Endpoint):
             >>> for item in query:
             ...     print(item['prefix'])
             ...
-            [{u'public-references': False, u'name': u'Open Library of Humanities', u'value': u'10.16995'}, {u'public-references': True, u'name': u'Martin Eve', u'value': u'10.7766'}]
-            [{u'public-references': True, u'name': u'Institute of Business Research', u'value': u'10.24122'}]
+            [
+            {u'public-references': False, u'name': u'Open Library of Humanities',
+            u'value': u'10.16995'},
+            {u'public-references': True, u'name': u'Martin Eve', u'value': u'10.7766'}
+            ]
+            [
+            {u'public-references': True, u'name': u'Institute of Business Research',
+            u'value': u'10.24122'}
+            ]
             ...
         """
         context = str(self.context)
@@ -1385,10 +1415,11 @@ class Members(Endpoint):
         for fltr, value in kwargs.items():
             decoded_fltr = fltr.replace("__", ".").replace("_", "-")
             if decoded_fltr not in self.FILTER_VALIDATOR.keys():
-                raise UrlSyntaxError(
-                    "Filter %s specified but there is no such filter for this route. Valid filters for this route are: %s"
-                    % (str(decoded_fltr), ", ".join(self.FILTER_VALIDATOR.keys()))
+                msg = (
+                    f"Filter {decoded_fltr!s} specified but there is no such filter for this route."
+                    f" Valid filters for this route are: {', '.join(self.FILTER_VALIDATOR.keys())}"
                 )
+                raise UrlSyntaxError(msg)
 
             if self.FILTER_VALIDATOR[decoded_fltr] is not None:
                 self.FILTER_VALIDATOR[decoded_fltr](str(value))
@@ -1420,16 +1451,20 @@ class Members(Endpoint):
             {'prefix': [{'value': '10.1024', 'public-references': False,
             'name': 'Hogrefe Publishing Group'}, {'value': '10.1027', 'public-references': False,
             'name': 'Hogrefe Publishing Group'}, {'value': '10.1026', 'public-references': False,
-            'name': 'Hogrefe Publishing Group'}], 'counts': {'total-dois': 35039, 'backfile-dois': 31430,
+            'name': 'Hogrefe Publishing Group'}], 'counts': {'total-dois': 35039,
+            'backfile-dois': 31430,
             'current-dois': 3609}, 'coverage': {'references-backfile': 0.3601972758769989,
             'references-current': 0.019118869677186012, 'abstracts-current': 0.0,
             'update-policies-backfile': 0.0, 'orcids-current': 0.0, 'orcids-backfile': 0.0,
             'licenses-current': 0.0, 'affiliations-backfile': 0.05685650557279587,
             'licenses-backfile': 0.0, 'update-policies-current': 0.0, 'resource-links-current': 0.0,
-            'resource-links-backfile': 0.0, 'award-numbers-backfile': 0.0, 'abstracts-backfile': 0.0,
-            'funders-current': 0.0, 'funders-backfile': 0.0, 'affiliations-current': 0.15710723400115967,
+            'resource-links-backfile': 0.0, 'award-numbers-backfile': 0.0,
+            'abstracts-backfile': 0.0,
+            'funders-current': 0.0, 'funders-backfile': 0.0,
+            'affiliations-current': 0.15710723400115967,
             'award-numbers-current': 0.0}, 'flags': {'deposits-orcids-backfile': False,
-            'deposits-references-backfile': True, 'deposits-licenses-current': False, 'deposits': True,
+            'deposits-references-backfile': True, 'deposits-licenses-current': False,
+            'deposits': True,
             'deposits-abstracts-current': False, 'deposits-award-numbers-current': False,
             'deposits-articles': True, 'deposits-resource-links-backfile': False,
             'deposits-funders-current': False, 'deposits-award-numbers-backfile': False,
@@ -1439,12 +1474,17 @@ class Members(Endpoint):
             'deposits-affiliations-backfile': True, 'deposits-update-policies-backfile': False,
             'deposits-resource-links-current': False, 'deposits-affiliations-current': True},
             'names': ['Hogrefe Publishing Group'], 'breakdowns': {'dois-by-issued-year':
-            [[2003, 2329], [2004, 2264], [2002, 2211], [2005, 2204], [2006, 2158], [2007, 2121], [2016, 1954],
-            [2008, 1884], [2015, 1838], [2012, 1827], [2013, 1805], [2014, 1796], [2009, 1760], [2010, 1718],
-            [2011, 1681], [2001, 1479], [2000, 1477], [1999, 1267], [2017, 767], [1997, 164], [1996, 140],
+            [[2003, 2329], [2004, 2264], [2002, 2211], [2005, 2204], [2006, 2158],
+            [2007, 2121], [2016, 1954],
+            [2008, 1884], [2015, 1838], [2012, 1827], [2013, 1805], [2014, 1796],
+            [2009, 1760], [2010, 1718],
+            [2011, 1681], [2001, 1479], [2000, 1477], [1999, 1267], [2017, 767],
+            [1997, 164], [1996, 140],
             [1998, 138], [1995, 103], [1994, 11], [1993, 11], [0, 1]]},
-            'location': 'Langgass-Strasse 76 Berne CH-3000 Switzerland', 'prefixes': ['10.1024', '10.1027',
-            '10.1026'], 'last-status-check-time': 1496034132646, 'id': 101, 'tokens': ['hogrefe', 'publishing',
+            'location': 'Langgass-Strasse 76 Berne CH-3000 Switzerland', 'prefixes':
+            ['10.1024', '10.1027',
+            '10.1026'], 'last-status-check-time': 1496034132646, 'id': 101, 'tokens':
+            ['hogrefe', 'publishing',
             'group'], 'primary-name': 'Hogrefe Publishing Group'}
         """
         request_url = build_url_endpoint("/".join([self.ENDPOINT, str(member_id)]))
@@ -1459,7 +1499,7 @@ class Members(Endpoint):
         )
 
         if result.status_code == 404:
-            return
+            return None
 
         result = result.json()
 
@@ -1511,17 +1551,16 @@ class Members(Endpoint):
 
         return: Works()
         """
-        context = "%s/%s" % (self.ENDPOINT, str(member_id))
+        context = f"{self.ENDPOINT}/{member_id!s}"
         return Works(context=context)
 
 
 class Types(Endpoint):
-
     CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = "types"
 
-    def type(self, type_id, only_message=True):
+    def type(self, type_id, only_message=True):  # noqa: A003
         """
         This method retrive a crossref document type metadata related to the
         given type_id.
@@ -1544,13 +1583,13 @@ class Types(Endpoint):
         )
 
         if result.status_code == 404:
-            return
+            return None
 
         result = result.json()
 
         return result["message"] if only_message is True else result
 
-    def all(self):
+    def all(self):  # noqa: A003
         """
         This method retrieve an iterator with all the available types.
 
@@ -1585,8 +1624,7 @@ class Types(Endpoint):
 
         result = result.json()
 
-        for item in result["message"]["items"]:
-            yield item
+        yield from result["message"]["items"]
 
     def type_exists(self, type_id):
         """
@@ -1634,12 +1672,11 @@ class Types(Endpoint):
 
         return: Works()
         """
-        context = "%s/%s" % (self.ENDPOINT, str(type_id))
+        context = f"{self.ENDPOINT}/{type_id!s}"
         return Works(context=context)
 
 
 class Prefixes(Endpoint):
-
     CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = "prefixes"
@@ -1671,7 +1708,7 @@ class Prefixes(Endpoint):
         )
 
         if result.status_code == 404:
-            return
+            return None
 
         result = result.json()
 
@@ -1685,12 +1722,11 @@ class Prefixes(Endpoint):
 
         return: Works()
         """
-        context = "%s/%s" % (self.ENDPOINT, str(prefix_id))
+        context = f"{self.ENDPOINT}/{prefix_id!s}"
         return Works(context=context)
 
 
 class Journals(Endpoint):
-
     CURSOR_AS_ITER_METHOD = False
 
     ENDPOINT = "journals"
@@ -1760,7 +1796,7 @@ class Journals(Endpoint):
         )
 
         if result.status_code == 404:
-            return
+            return None
 
         result = result.json()
 
@@ -1814,12 +1850,14 @@ class Journals(Endpoint):
         return: Works()
         """
 
-        context = "%s/%s" % (self.ENDPOINT, str(issn))
+        context = f"{self.ENDPOINT}/{issn!s}"
         return Works(context=context)
 
 
-class Depositor(object):
-    def __init__(self, prefix, api_user, api_key, etiquette=None, use_test_server=False):
+class Depositor:
+    def __init__( # noqa: PLR0913
+            self, prefix, api_user, api_key, etiquette=None, use_test_server=False,
+    ):
         self.do_http_request = HTTPRequest(throttle=False).do_http_request
         self.etiquette = etiquette or Etiquette()
         self.custom_header = {"user-agent": str(self.etiquette)}
@@ -1830,7 +1868,7 @@ class Depositor(object):
 
     def get_endpoint(self, verb):
         subdomain = "test" if self.use_test_server else "doi"
-        return "https://{}.crossref.org/servlet/{}".format(subdomain, verb)
+        return f"https://{subdomain}.crossref.org/servlet/{verb}"
 
     def register_doi(self, submission_id, request_xml):
         """
@@ -1854,7 +1892,7 @@ class Depositor(object):
             "login_passwd": self.api_key,
         }
 
-        result = self.do_http_request(
+        return self.do_http_request(
             "post",
             endpoint,
             data=params,
@@ -1862,8 +1900,6 @@ class Depositor(object):
             custom_header=self.custom_header,
             timeout=self.timeout,
         )
-
-        return result
 
     def request_doi_status_by_filename(self, file_name, data_type="result"):
         """
@@ -1885,11 +1921,9 @@ class Depositor(object):
             "type": data_type,
         }
 
-        result = self.do_http_request(
-            "get", endpoint, data=params, custom_header=self.custom_header, timeout=self.timeout
+        return self.do_http_request(
+            "get", endpoint, data=params, custom_header=self.custom_header, timeout=self.timeout,
         )
-
-        return result
 
     def request_doi_status_by_batch_id(self, doi_batch_id, data_type="result"):
         """
@@ -1911,8 +1945,6 @@ class Depositor(object):
             "type": data_type,
         }
 
-        result = self.do_http_request(
-            "get", endpoint, data=params, custom_header=self.custom_header, timeout=self.timeout
+        return self.do_http_request(
+            "get", endpoint, data=params, custom_header=self.custom_header, timeout=self.timeout,
         )
-
-        return result

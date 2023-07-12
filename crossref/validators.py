@@ -1,6 +1,3 @@
-# coding: utf-8
-
-from crossref.utils import asbool
 from datetime import datetime
 
 
@@ -10,8 +7,9 @@ def directory(value):
     if str(value) in expected:
         return True
 
+    msg = "Directory specified as {} but must be one of: {}".format(str(value), ", ".join(expected))
     raise ValueError(
-        "Directory specified as %s but must be one of: %s" % (str(value), ", ".join(expected))
+        msg,
     )
 
 
@@ -21,8 +19,9 @@ def archive(value):
     if str(value) in expected:
         return True
 
+    msg = "Archive specified as {} but must be one of: {}".format(str(value), ", ".join(expected))
     raise ValueError(
-        "Archive specified as %s but must be one of: %s" % (str(value), ", ".join(expected))
+        msg,
     )
 
 
@@ -60,8 +59,9 @@ def document_type(value):
     if str(value) in expected:
         return True
 
+    msg = "Type specified as {} but must be one of: {}".format(str(value), ", ".join(expected))
     raise ValueError(
-        "Type specified as %s but must be one of: %s" % (str(value), ", ".join(expected))
+        msg,
     )
 
 
@@ -72,30 +72,24 @@ def is_bool(value):
     if str(value) in expected:
         return True
 
+    msg = "Boolean specified {} True but must be one of: {}".format(str(value), ", ".join(expected))
     raise ValueError(
-        "Boolean specified %s True but must be one of: %s" % (str(value), ", ".join(expected))
+        msg,
     )
 
 
 def is_date(value):
-
     try:
-        datetime.strptime(value, "%Y")
-        return True
+        datetime.strptime(value, "%Y")  # noqa: DTZ007
     except ValueError:
         try:
-            datetime.strptime(value, "%Y-%m")
-            return True
+            datetime.strptime(value, "%Y-%m")   # noqa: DTZ007
         except ValueError:
             try:
-                datetime.strptime(value, "%Y-%m-%d")
-                return True
-            except:
-                pass
-
-    raise ValueError(
-        "Date specified as %s but must be of the form: yyyy or yyyy-mm or yyyy-mm-dd " % str(value)
-    )
+                datetime.strptime(value, "%Y-%m-%d")   # noqa: DTZ007
+            except ValueError:
+                return False
+    return True
 
 
 def is_integer(value):

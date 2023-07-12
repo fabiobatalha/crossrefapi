@@ -1,4 +1,3 @@
-# coding: utf-8
 
 truthy = frozenset(("t", "true", "y", "yes", "on", "1"))
 
