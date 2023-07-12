@@ -1,1 +1,3 @@
-VERSION = "1.5.2"
+from importlib import metadata
+
+VERSION = metadata.version("crossrefapi")
