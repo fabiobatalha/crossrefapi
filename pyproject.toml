@@ -4,6 +4,9 @@ version = "1.6.0"
 description = "Library that implements the endpoints of the Crossref API"
 authors = ["Fabio Batalha <fabio.batalha@erudit.org>"]
 readme = "README.rst"
+packages = [
+  { include = "crossref",  from="."}
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
