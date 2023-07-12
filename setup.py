@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 from crossref import VERSION
 
 install_requires = [
-    'requests>=2.11.1'
+    'requests>=2.31.0'
 ]
 
 tests_require = []
