@@ -4,7 +4,8 @@ from setuptools import setup, find_packages
 from crossref import VERSION
 
 install_requires = [
-    'requests>=2.31.0'
+    'requests>=2.31.0',
+    'urllib3==1.26.16',
 ]
 
 tests_require = []
