@@ -87,8 +87,9 @@ def is_date(value):
         except ValueError:
             try:
                 datetime.strptime(value, "%Y-%m-%d")   # noqa: DTZ007
-            except ValueError:
-                return False
+            except ValueError as exc:
+                msg = f"Invalid date {value}."
+                raise ValueError(msg) from exc
     return True
 
 
