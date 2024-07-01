@@ -1856,7 +1856,7 @@ class Journals(Endpoint):
 
 class Depositor:
     def __init__( # noqa: PLR0913
-            self, prefix, api_user, api_key, etiquette=None, use_test_server=False,
+            self, prefix, api_user, api_key, etiquette=None, use_test_server=False, timeout=100,
     ):
         self.do_http_request = HTTPRequest(throttle=False).do_http_request
         self.etiquette = etiquette or Etiquette()
@@ -1865,6 +1865,7 @@ class Depositor:
         self.api_user = api_user
         self.api_key = api_key
         self.use_test_server = use_test_server
+        self.timeout = timeout
 
     def get_endpoint(self, verb):
         subdomain = "test" if self.use_test_server else "doi"
