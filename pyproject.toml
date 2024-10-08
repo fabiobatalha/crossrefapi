@@ -3,15 +3,15 @@ name = "crossrefapi"
 version = "1.6.0"
 description = "Library that implements the endpoints of the Crossref API"
 authors = ["Fabio Batalha <fabio.batalha@erudit.org>"]
-readme = "README.rst"
 packages = [
   { include = "crossref",  from="."}
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 requests = "^2.31.0"
 urllib3 = "1.26.18"
+ipython = "^8.20.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
