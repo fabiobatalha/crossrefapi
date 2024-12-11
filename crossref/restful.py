@@ -358,6 +358,9 @@ class Endpoint:
                 for item in result["message"]["items"]:
                     yield item
 
+                if not self.paginate:
+                    return
+
                 request_params["offset"] += real_limit
 
                 if request_params["offset"] >= MAXOFFSET:
