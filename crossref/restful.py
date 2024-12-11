@@ -125,6 +125,7 @@ class Endpoint:
             throttle=True,
             crossref_plus_token=None,
             timeout=30,
+            paginate=True,
     ):
         self.do_http_request = HTTPRequest(throttle=throttle).do_http_request
         self.etiquette = etiquette or Etiquette()
@@ -136,6 +137,7 @@ class Endpoint:
         self.request_params = request_params or {}
         self.context = context or ""
         self.timeout = timeout
+        self.paginate = paginate
 
     @property
     def _rate_limits(self):
@@ -305,7 +307,8 @@ class Endpoint:
         if self.CURSOR_AS_ITER_METHOD is True:
             request_params = dict(self.request_params)
             request_params["cursor"] = "*"
-            request_params["rows"] = LIMIT
+            if "rows" not in request_params:
+                request_params["rows"] = LIMIT
             while True:
                 result = self.do_http_request(
                     "get",
@@ -325,12 +328,16 @@ class Endpoint:
 
                 for item in result["message"]["items"]:
                     yield item
+
+                if not self.paginate:
+                    return
 
                 request_params["cursor"] = result["message"]["next-cursor"]
         else:
             request_params = dict(self.request_params)
             request_params["offset"] = 0
-            request_params["rows"] = LIMIT
+            real_limit = request_params["rows"] if "rows" in request_params else LIMIT
+            request_params["rows"] = real_limit
             while True:
                 result = self.do_http_request(
                     "get",
@@ -351,7 +358,10 @@ class Endpoint:
                 for item in result["message"]["items"]:
                     yield item
 
-                request_params["offset"] += LIMIT
+                if not self.paginate:
+                    return
+
+                request_params["offset"] += real_limit
 
                 if request_params["offset"] >= MAXOFFSET:
                     msg = "Offset exceded the max offset of %d"
@@ -621,6 +631,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            paginate=self.paginate,
         )
 
     def select(self, *args):
@@ -725,6 +736,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            paginate=self.paginate,
         )
 
     def sort(self, sort="score"):
@@ -786,6 +798,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            paginate=self.paginate,
         )
 
     def filter(self, **kwargs):  # noqa: A003
@@ -843,6 +856,7 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            paginate=self.paginate,
         )
 
     def facet(self, facet_name, facet_count=100):
@@ -1161,6 +1175,7 @@ class Funders(Endpoint):
             request_params=request_params,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            paginate=self.paginate,
         )
 
     def filter(self, **kwargs):  # noqa: A003
@@ -1217,6 +1232,7 @@ class Funders(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            paginate=self.paginate,
         )
 
     def funder(self, funder_id, only_message=True):
@@ -1375,6 +1391,7 @@ class Members(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            paginate=self.paginate,
         )
 
     def filter(self, **kwargs):  # noqa: A003
@@ -1435,6 +1452,7 @@ class Members(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            paginate=self.paginate,
         )
 
     def member(self, member_id, only_message=True):
