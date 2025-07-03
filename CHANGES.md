@@ -1,12 +1,16 @@
 # 1.7.0
 
-* Support for urllib3 2.X
 * Remove support for Python 2.X
-* Allow to skip SSL verification using requests library
+* Allow skipping SSL verification using a requests library
+* Replicate configurations to the Works endpoint when using works from Journals, Prefixes, Members,
+  Funders and Types, classes
+* Using pytests as a test framework
+* Including integration tests
+* Upgrading dependencies
 
 # 1.6.1
 
-* Fix Depositor including timeout attribute to it 
+* Fix Depositor including a timeout attribute to it 
 
 # 1.6.0
 
