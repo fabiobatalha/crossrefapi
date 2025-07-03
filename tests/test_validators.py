@@ -1,112 +1,109 @@
-
-import unittest
+import pytest
 
 from crossref import validators
 
 
-class ValidatorsTest(unittest.TestCase):
+def test_directory_1():
 
-    def test_directory_1(self):
+    result = validators.directory("DOAJ")
 
-        result = validators.directory("DOAJ")
+    assert result
 
-        assert result
+def test_directory_2():
 
-    def test_directory_2(self):
+    with pytest.raises(ValueError):
+        validators.directory("any invalid archive")
 
-        with self.assertRaises(ValueError):
-            validators.directory("any invalid archive")
+def test_archive_1():
 
-    def test_archive_1(self):
+    result = validators.archive("CLOCKSS")
 
-        result = validators.archive("CLOCKSS")
+    assert result
 
-        assert result
+def test_archive_2():
 
-    def test_archive_2(self):
+    with pytest.raises(ValueError):
+        validators.archive("any invalid archive")
 
-        with self.assertRaises(ValueError):
-            validators.archive("any invalid archive")
+def test_document_type_1():
 
-    def test_document_type_1(self):
+    result = validators.document_type("book-chapter")
 
-        result = validators.document_type("book-chapter")
+    assert result
 
-        assert result
+def test_document_type_2():
 
-    def test_document_type_2(self):
+    with pytest.raises(ValueError):
+        validators.document_type("any invalid type")
 
-        with self.assertRaises(ValueError):
-            validators.document_type("any invalid type")
+def test_is_bool_3():
 
-    def test_is_bool_3(self):
+    result = validators.is_bool("true")
 
-        result = validators.is_bool("true")
+    assert result
 
-        assert result
+def test_is_bool_4():
 
-    def test_is_bool_4(self):
+    result = validators.is_bool("false")
 
-        result = validators.is_bool("false")
+    assert result
 
-        assert result
+def test_is_bool_5():
 
-    def test_is_bool_5(self):
+    result = validators.is_bool("1")
 
-        result = validators.is_bool("1")
+    assert result
 
-        assert result
+def test_is_bool_6():
 
-    def test_is_bool_5(self):
+    with pytest.raises(ValueError):
+        validators.is_bool("jljlj")
 
-        with self.assertRaises(ValueError):
-            validators.is_bool("jljlj")
+def test_is_date_1():
 
-    def test_is_date_1(self):
+    result = validators.is_date("2017")
 
-        result = validators.is_date("2017")
+    assert result
 
-        assert result
+def test_is_date_2():
 
-    def test_is_date_2(self):
+    result = validators.is_date("2017-12")
 
-        result = validators.is_date("2017-12")
+    assert result
 
-        assert result
+def test_is_date_3():
 
-    def test_is_date_3(self):
+    result = validators.is_date("2017-12-31")
 
-        result = validators.is_date("2017-12-31")
+    assert result
 
-        assert result
+def test_is_date_4():
 
-    def test_is_date_4(self):
+    with pytest.raises(ValueError):
+        validators.is_date("asas")
 
-        with self.assertRaises(ValueError):
-            validators.is_date("asas")
+def test_is_date_5():
 
-    def test_is_date_5(self):
+    with pytest.raises(ValueError):
+        validators.is_date("2017-30")
 
-        with self.assertRaises(ValueError):
-            validators.is_date("2017-30")
+def test_is_date_6():
 
-    def test_is_date_6(self):
+    with pytest.raises(ValueError):
+        validators.is_date("2017-12-00")
 
-        with self.assertRaises(ValueError):
-            validators.is_date("2017-12-00")
+def test_is_integer_1():
 
-    def test_is_integer_1(self):
+    result = validators.is_integer("10")
 
-        result = validators.is_integer("10")
+    assert result
 
-        assert result
+def test_is_integer_2():
 
-    def test_is_integer_1(self):
+    with pytest.raises(ValueError):
+        validators.is_integer("-1")
 
-        with self.assertRaises(ValueError):
-            validators.is_integer("-1")
+def test_is_integer_3():
 
-    def test_is_integer_3(self):
-
-        with self.assertRaises(ValueError):
-            validators.is_integer("dd")
+    with pytest.raises(ValueError):
+        validators.is_integer("dd")
