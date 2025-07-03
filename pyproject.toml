@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "crossrefapi"
-version = "1.6.1"
+version = "1.7.0"
 description = "Library that implements the endpoints of the Crossref API"
 authors = ["Fabio Batalha <fabio.batalha@erudit.org>"]
 packages = [
