@@ -1164,7 +1164,7 @@ class Funders(Endpoint):
 
     def query(self, *args):
         """
-        This method retrieve an iterable object that implements the method
+        This method retrieves an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
         request url.
 
@@ -1341,7 +1341,14 @@ class Funders(Endpoint):
         return: Works()
         """
         context = f"{self.ENDPOINT}/{funder_id!s}"
-        return Works(context=context)
+        return Works(
+            context=context,
+            etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
+            timeout=self.timeout,
+            verify=self.verify,
+        )
 
 
 class Members(Endpoint):
@@ -1597,7 +1604,14 @@ class Members(Endpoint):
         return: Works()
         """
         context = f"{self.ENDPOINT}/{member_id!s}"
-        return Works(context=context)
+        return Works(
+            context=context,
+            etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
+            timeout=self.timeout,
+            verify=self.verify,
+        )
 
 
 class Types(Endpoint):
@@ -1718,7 +1732,14 @@ class Types(Endpoint):
         return: Works()
         """
         context = f"{self.ENDPOINT}/{type_id!s}"
-        return Works(context=context)
+        return Works(
+            context=context,
+            etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
+            timeout=self.timeout,
+            verify=self.verify,
+        )
 
 
 class Prefixes(Endpoint):
@@ -1768,7 +1789,14 @@ class Prefixes(Endpoint):
         return: Works()
         """
         context = f"{self.ENDPOINT}/{prefix_id!s}"
-        return Works(context=context)
+        return Works(
+            context=context,
+            etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
+            timeout=self.timeout,
+            verify=self.verify,
+        )
 
 
 class Journals(Endpoint):
@@ -1899,7 +1927,14 @@ class Journals(Endpoint):
         """
 
         context = f"{self.ENDPOINT}/{issn!s}"
-        return Works(context=context)
+        return Works(
+            context=context,
+            etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
+            timeout=self.timeout,
+            verify=self.verify,
+        )
 
 
 class Depositor:
