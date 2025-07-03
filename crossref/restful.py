@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import contextlib
 import typing
 from time import sleep
@@ -29,9 +27,10 @@ class UrlSyntaxError(CrossrefAPIError, ValueError):
 
 class HTTPRequest:
 
-    def __init__(self, throttle=True):
+    def __init__(self, throttle=True, verify=True):
         self.throttle = throttle
         self.rate_limits = {"x-rate-limit-limit": 50, "x-rate-limit-interval": 1}
+        self.verify = verify  # Disable SSL verification by default
 
     def _update_rate_limits(self, headers):
 
@@ -65,7 +64,6 @@ class HTTPRequest:
             only_headers=False,
             custom_header=None,
     ):
-
         if only_headers is True:
             return requests.head(endpoint, timeout=2)
 
@@ -73,11 +71,17 @@ class HTTPRequest:
 
         headers = custom_header if custom_header else {"user-agent": str(Etiquette())}
         if method == "post":
-            result = action(endpoint, data=data, files=files, timeout=timeout, headers=headers)
+            result = action(
+                endpoint,
+                data=data, files=files, timeout=timeout, headers=headers, verify=self.verify
+            )
         else:
-            result = action(endpoint, params=data, timeout=timeout, headers=headers)
+            result = action(
+                endpoint,
+                params=data, timeout=timeout, headers=headers, verify=self.verify
+            )
 
-        if self.throttle is True:
+        if self.throttle:
             self._update_rate_limits(result.headers)
             sleep(self.throttling_time)
 
@@ -125,8 +129,12 @@ class Endpoint:
             throttle=True,
             crossref_plus_token=None,
             timeout=30,
+            verify=True,
     ):
-        self.do_http_request = HTTPRequest(throttle=throttle).do_http_request
+        self.throttle = throttle
+        self.verify = verify
+        self.http_request = HTTPRequest(throttle=throttle, verify=verify)
+        self.do_http_request = self.http_request.do_http_request
         self.etiquette = etiquette or Etiquette()
         self.custom_header = {"user-agent": str(self.etiquette)}
         self.crossref_plus_token = crossref_plus_token
@@ -147,7 +155,6 @@ class Endpoint:
             only_headers=True,
             custom_header=self.custom_header,
             timeout=self.timeout,
-            throttle=False,
         )
 
         return {
@@ -233,7 +240,7 @@ class Endpoint:
     @property
     def url(self):
         """
-        This attribute retrieve the url that will be used as a HTTP request to
+        This attribute retrieves the url that will be used as a HTTP request to
         the Crossref API.
 
         This attribute can be used compounded with query, filter,
@@ -274,8 +281,10 @@ class Endpoint:
                 request_params=request_params,
                 context=context,
                 etiquette=self.etiquette,
+                throttle=self.throttle,
                 crossref_plus_token=self.crossref_plus_token,
                 timeout=self.timeout,
+                verify=self.verify,
             ),
         )
 
@@ -302,7 +311,7 @@ class Endpoint:
 
             return
 
-        if self.CURSOR_AS_ITER_METHOD is True:
+        if self.CURSOR_AS_ITER_METHOD:
             request_params = dict(self.request_params)
             request_params["cursor"] = "*"
             request_params["rows"] = LIMIT
@@ -620,12 +629,15 @@ class Works(Endpoint):
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def select(self, *args):
         """
-        This method retrieve an iterable object that implements the method
+        This method retrieves an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
         request url.
 
@@ -724,12 +736,15 @@ class Works(Endpoint):
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def sort(self, sort="score"):
         """
-        This method retrieve an iterable object that implements the method
+        This method retrieves an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
         request url.
 
@@ -785,12 +800,15 @@ class Works(Endpoint):
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def filter(self, **kwargs):  # noqa: A003
         """
-        This method retrieve an iterable object that implements the method
+        This method retrieves an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
         request url.
 
@@ -842,7 +860,10 @@ class Works(Endpoint):
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def facet(self, facet_name, facet_count=100):
@@ -854,10 +875,10 @@ class Works(Endpoint):
         if facet_name not in self.FACET_VALUES.keys():
             msg = (
                 f"Facet {facet_name} specified but there is no such facet for this route."
-                f" Valid facets for this route are: *, affiliation, funder-name, funder-doi,"
-                f" publisher-name, orcid, container-title, assertion, archive, update-type,"
-                f" issn, published, source, type-name, license, category-name, relation-type,"
-                f" assertion-group"
+                " Valid facets for this route are: *, affiliation, funder-name, funder-doi,"
+                " publisher-name, orcid, container-title, assertion, archive, update-type,"
+                " issn, published, source, type-name, license, category-name, relation-type,"
+                " assertion-group"
             )
             raise UrlSyntaxError((
                 msg
@@ -935,15 +956,20 @@ class Works(Endpoint):
                 )
             request_params["query.%s" % field.replace("_", "-")] = value
 
-        return self.__class__(request_url=request_url,
-                              request_params=request_params,
-                              context=context,
-                              etiquette=self.etiquette,
-                              timeout=self.timeout)
+        return self.__class__(
+            request_url=request_url,
+            request_params=request_params,
+            context=context,
+            etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
+            timeout=self.timeout,
+            verify=self.verify,
+        )
 
     def sample(self, sample_size=20):
         """
-        This method retrieve an iterable object that implements the method
+        This method retrieves an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
         request url.
 
@@ -963,7 +989,11 @@ class Works(Endpoint):
         context = str(self.context)
         request_url = build_url_endpoint(self.ENDPOINT, context)
         request_params = dict(self.request_params)
-
+        etiquette=self.etiquette,
+        throttle=self.throttle,
+        crossref_plus_token=self.crossref_plus_token,
+        timeout=self.timeout,
+        verify=self.verify,
         try:
             if sample_size > 100:
                 msg = (
@@ -986,6 +1016,9 @@ class Works(Endpoint):
             context=context,
             etiquette=self.etiquette,
             timeout=self.timeout,
+            throttle=self.throttle,
+            verify=self.verify,
+            crossref_plus_token=self.crossref_plus_token,
         )
 
     def doi(self, doi, only_message=True):
@@ -1160,7 +1193,10 @@ class Funders(Endpoint):
             request_url=request_url,
             request_params=request_params,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def filter(self, **kwargs):  # noqa: A003
@@ -1216,7 +1252,10 @@ class Funders(Endpoint):
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def funder(self, funder_id, only_message=True):
@@ -1295,7 +1334,7 @@ class Funders(Endpoint):
 
     def works(self, funder_id):
         """
-        This method retrieve a iterable of Works of the given funder.
+        This method retrieves an iterable of Works of the given funder.
 
         args: Crossref allowed document Types (String)
 
@@ -1319,7 +1358,7 @@ class Members(Endpoint):
 
     def query(self, *args):
         """
-        This method retrieve an iterable object that implements the method
+        This method retrieves an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
         request url.
 
@@ -1374,7 +1413,10 @@ class Members(Endpoint):
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def filter(self, **kwargs):  # noqa: A003
@@ -1434,7 +1476,10 @@ class Members(Endpoint):
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def member(self, member_id, only_message=True):
@@ -1507,8 +1552,8 @@ class Members(Endpoint):
 
     def member_exists(self, member_id):
         """
-        This method retrieve a boolean according to the existence of a crossref
-        member. It returns False if the API results a 404 status code.
+        This method retrieves a boolean according to the existence of a crossref
+        member. It returns False if the API results in a 404 status code.
 
         args: Crossref allowed document Type (String)
 
@@ -1545,7 +1590,7 @@ class Members(Endpoint):
 
     def works(self, member_id):
         """
-        This method retrieve a iterable of Works of the given member.
+        This method retrieves an iterable of Works of the given member.
 
         args: Member ID (Integer)
 
@@ -1562,7 +1607,7 @@ class Types(Endpoint):
 
     def type(self, type_id, only_message=True):  # noqa: A003
         """
-        This method retrive a crossref document type metadata related to the
+        This method retrives a crossref document type metadata related to the
         given type_id.
 
         args: Crossref allowed document Types (String)
@@ -1591,7 +1636,7 @@ class Types(Endpoint):
 
     def all(self):  # noqa: A003
         """
-        This method retrieve an iterator with all the available types.
+        This method retrieves an iterator with all the available types.
 
         return: iterator of crossref document types
 
@@ -1628,7 +1673,7 @@ class Types(Endpoint):
 
     def type_exists(self, type_id):
         """
-        This method retrieve a boolean according to the existence of a crossref
+        This method retrieves a boolean according to the existence of a crossref
         document type. It returns False if the API results a 404 status code.
 
         args: Crossref allowed document Type (String)
@@ -1666,7 +1711,7 @@ class Types(Endpoint):
 
     def works(self, type_id):
         """
-        This method retrieve a iterable of Works of the given type.
+        This method retrieves an iterable of Works of the given type.
 
         args: Crossref allowed document Types (String)
 
@@ -1683,7 +1728,7 @@ class Prefixes(Endpoint):
 
     def prefix(self, prefix_id, only_message=True):
         """
-        This method retrieve a json with the given Prefix metadata
+        This method retrieves a JSON with the given Prefix metadata
 
         args: Crossref Prefix (String)
 
@@ -1716,7 +1761,7 @@ class Prefixes(Endpoint):
 
     def works(self, prefix_id):
         """
-        This method retrieve a iterable of Works of the given prefix.
+        This method retrieves an iterable of Works of the given prefix.
 
         args: Crossref Prefix (String)
 
@@ -1733,7 +1778,7 @@ class Journals(Endpoint):
 
     def query(self, *args):
         """
-        This method retrieve an iterable object that implements the method
+        This method retrieves an iterable object that implements the method
         __iter__. The arguments given will compose the parameters in the
         request url.
 
@@ -1764,12 +1809,15 @@ class Journals(Endpoint):
             request_params=request_params,
             context=context,
             etiquette=self.etiquette,
+            throttle=self.throttle,
+            crossref_plus_token=self.crossref_plus_token,
             timeout=self.timeout,
+            verify=self.verify,
         )
 
     def journal(self, issn, only_message=True):
         """
-        This method retrieve a json with the given ISSN metadata
+        This method retrieves a JSON with the given ISSN metadata
 
         args: Journal ISSN (String)
 
@@ -1804,8 +1852,8 @@ class Journals(Endpoint):
 
     def journal_exists(self, issn):
         """
-        This method retrieve a boolean according to the existence of a journal
-        in the Crossref database. It returns False if the API results a 404
+        This method retrieves a boolean according to the existence of a journal
+        in the Crossref database. It returns False if the API results in a 404
         status code.
 
         args: Journal ISSN (String)
@@ -1843,7 +1891,7 @@ class Journals(Endpoint):
 
     def works(self, issn):
         """
-        This method retrieve a iterable of Works of the given journal.
+        This method retrieves an iterable of Works of the given journal.
 
         args: Journal ISSN (String)
 
@@ -1904,7 +1952,7 @@ class Depositor:
 
     def request_doi_status_by_filename(self, file_name, data_type="result"):
         """
-        This method retrieve the DOI requests status.
+        This method retrieves the DOI requests status.
 
         file_name: Used as unique ID to identify a deposit.
 
@@ -1928,7 +1976,7 @@ class Depositor:
 
     def request_doi_status_by_batch_id(self, doi_batch_id, data_type="result"):
         """
-        This method retrieve the DOI requests status.
+        This method retrieves the DOI requests status.
 
         file_name: Used as unique ID to identify a deposit.
 
