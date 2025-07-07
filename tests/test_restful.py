@@ -1,4 +1,5 @@
 import pytest
+
 from crossref import VERSION, restful
 
 
@@ -40,10 +41,17 @@ def test_work_select_fields(etiquette):
 
 
 def test_work_select_fields_multiple_parameter_and_array(etiquette):
-    result = restful.Works(etiquette=etiquette, verify=False) \
-        .select("DOI", "title").select("subject").select(["relation", "editor"]) \
-        .select("relation, editor").url
-    assert result == "https://api.crossref.org/works?select=DOI%2Ceditor%2Crelation%2Csubject%2Ctitle"
+    result = (
+        restful.Works(etiquette=etiquette, verify=False)
+        .select("DOI", "title")
+        .select("subject")
+        .select(["relation", "editor"])
+        .select("relation, editor")
+        .url
+    )
+    assert (
+        result == "https://api.crossref.org/works?select=DOI%2Ceditor%2Crelation%2Csubject%2Ctitle"
+    )
 
 
 def test_work_with_sample(etiquette):
@@ -52,23 +60,39 @@ def test_work_with_sample(etiquette):
 
 
 def test_work_with_sample_and_filters(etiquette):
-    result = restful.Works(
-        etiquette=etiquette, verify=False
-    ).filter(type="journal-article").sample(5).url
+    result = (
+        restful.Works(
+            etiquette=etiquette,
+            verify=False,
+        )
+        .filter(type="journal-article")
+        .sample(5)
+        .url
+    )
     assert result == "https://api.crossref.org/works?filter=type%3Ajournal-article&sample=5"
 
 
 def test_members_filters(etiquette):
-    result = restful.Members(
-        etiquette=etiquette, verify=False
-    ).filter(has_public_references="true").url
+    result = (
+        restful.Members(
+            etiquette=etiquette,
+            verify=False,
+        )
+        .filter(has_public_references="true")
+        .url
+    )
     assert result == "https://api.crossref.org/members?filter=has-public-references%3Atrue"
 
 
 def test_funders_filters(etiquette):
-    result = restful.Funders(
-        etiquette=etiquette, verify=False
-    ).filter(location="Japan").url
+    result = (
+        restful.Funders(
+            etiquette=etiquette,
+            verify=False,
+        )
+        .filter(location="Japan")
+        .url
+    )
     assert result == "https://api.crossref.org/funders?filter=location%3AJapan"
 
 
