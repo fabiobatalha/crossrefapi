@@ -9,7 +9,7 @@ license = {text = "BSD 2-Clause License"}
 readme = "README.rst"
 requires-python = ">=3.11"
 dependencies = [
-    "urllib3 (==2.5.0)",
+    "urllib3 (>=2.5.0)",
     "requests (>=2.32.4,<3.0.0)"
 ]
 

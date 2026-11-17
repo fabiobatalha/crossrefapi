@@ -1,8 +1,10 @@
 import contextlib
 import typing
 from collections.abc import Iterable
+from http import HTTPStatus
 from time import sleep
 from typing import Any
+from urllib.parse import urlsplit
 
 import requests
 
@@ -72,6 +74,20 @@ class HTTPRequest:
         action = requests.post if method == "post" else requests.get
 
         headers = custom_header if custom_header else {"user-agent": str(Etiquette())}
+        has_token = any(name.lower() == "crossref-plus-api-token" for name in headers)
+        if has_token:
+            # Validate the normalized URL that Requests will actually send.
+            target = urlsplit(requests.Request(method, endpoint).prepare().url)
+            if (
+                target.scheme != "https"
+                or target.hostname != "api.crossref.org"
+                or target.port not in (None, 443)
+                or target.username is not None
+                or target.password is not None
+            ):
+                msg = "Crossref Plus tokens require the trusted Crossref HTTPS endpoint"
+                raise CrossrefAPIError(msg)
+
         if method == "post":
             result = action(
                 endpoint,
@@ -80,6 +96,7 @@ class HTTPRequest:
                 timeout=timeout,
                 headers=headers,
                 verify=self.verify,
+                allow_redirects=not has_token,
             )
         else:
             result = action(
@@ -88,7 +105,13 @@ class HTTPRequest:
                 timeout=timeout,
                 headers=headers,
                 verify=self.verify,
+                allow_redirects=not has_token,
             )
+
+        if has_token and HTTPStatus.MULTIPLE_CHOICES <= result.status_code < HTTPStatus.BAD_REQUEST:
+            result.close()
+            msg = "Redirect refused for an authenticated Crossref request"
+            raise CrossrefAPIError(msg)
 
         if self.throttle:
             self._update_rate_limits(result.headers)
@@ -1852,7 +1875,7 @@ class Depositor:
         }
 
         return self.do_http_request(
-            "get",
+            "post",
             endpoint,
             data=params,
             custom_header=self.custom_header,
@@ -1893,7 +1916,7 @@ class Depositor:
         }
 
         return self.do_http_request(
-            "get",
+            "post",
             endpoint,
             data=params,
             custom_header=self.custom_header,
